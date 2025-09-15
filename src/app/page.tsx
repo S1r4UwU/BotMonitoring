@@ -1,103 +1,411 @@
-import Image from "next/image";
+'use client';
 
-export default function Home() {
-  return (
-    <div className="font-sans grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20">
-      <main className="flex flex-col gap-[32px] row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="font-mono list-inside list-decimal text-sm/6 text-center sm:text-left">
-          <li className="mb-2 tracking-[-.01em]">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] font-mono font-semibold px-1 py-0.5 rounded">
-              src/app/page.tsx
-            </code>
-            .
-          </li>
-          <li className="tracking-[-.01em]">
-            Save and see your changes instantly.
-          </li>
-        </ol>
+import { useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
+import { createClientComponentClient } from '@/lib/supabase-client';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { 
+  Shield, 
+  Mail, 
+  Lock, 
+  Eye, 
+  EyeOff,
+  Loader2,
+  Play,
+  Info
+} from 'lucide-react';
+import { isDemoMode } from '@/services/demo-data';
 
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:w-auto"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 w-full sm:w-auto md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Read our docs
-          </a>
+export default function HomePage() {
+  const [user, setUser] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [authLoading, setAuthLoading] = useState(false);
+  const [error, setError] = useState('');
+  const [loginMode, setLoginMode] = useState<'login' | 'signup'>('login');
+  const [showPassword, setShowPassword] = useState(false);
+  const [formData, setFormData] = useState({
+    email: '',
+    password: '',
+    fullName: '',
+  });
+  
+  const router = useRouter();
+  const demoMode = isDemoMode();
+
+  useEffect(() => {
+    const checkAuth = async () => {
+      try {
+        // Vérifier s'il y a une session démo dans localStorage
+        const demoSession = localStorage.getItem('socialguard-demo-session');
+        if (demoSession) {
+          router.push('/dashboard');
+          return;
+        }
+
+        // Essayer Supabase seulement si configuré
+        try {
+          const supabase = createClientComponentClient();
+          const { data: { user }, error } = await supabase.auth.getUser();
+          
+          if (!error && user) {
+            router.push('/dashboard');
+            return;
+          }
+        } catch (supabaseError) {
+          console.log('Supabase non configuré ou erreur - mode standalone');
+        }
+
+        setUser(null);
+      } catch (err) {
+        console.error('Erreur:', err);
+        setUser(null);
+      } finally {
+        setLoading(false);
+      }
+    };
+    
+    checkAuth();
+  }, [router]);
+
+  const handleFormChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setFormData(prev => ({
+      ...prev,
+      [e.target.name]: e.target.value,
+    }));
+  };
+
+  const handleAuth = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setAuthLoading(true);
+    setError('');
+
+    try {
+      // Essayer Supabase s'il est configuré
+      try {
+        const supabase = createClientComponentClient();
+        
+        if (loginMode === 'signup') {
+          const { data, error } = await supabase.auth.signUp({
+            email: formData.email,
+            password: formData.password,
+            options: {
+              data: {
+                full_name: formData.fullName,
+              },
+            },
+          });
+
+          if (error) {
+            setError(error.message);
+            return;
+          }
+
+          if (data.user) {
+            setError('');
+            alert('Compte créé ! Vérifiez votre email pour activer votre compte.');
+            setLoginMode('login');
+          }
+        } else {
+          const { data, error } = await supabase.auth.signInWithPassword({
+            email: formData.email,
+            password: formData.password,
+          });
+
+          if (error) {
+            setError(error.message);
+            return;
+          }
+
+          if (data.user) {
+            router.push('/dashboard');
+          }
+        }
+      } catch (supabaseError) {
+        // Si Supabase non configuré, connexion locale simulée
+        console.log('Supabase non configuré, connexion locale simulée');
+        
+        if (formData.email && formData.password) {
+          localStorage.setItem('socialguard-demo-session', JSON.stringify({
+            email: formData.email,
+            fullName: formData.fullName || 'Utilisateur',
+            loginTime: new Date().toISOString()
+          }));
+          router.push('/dashboard');
+        } else {
+          setError('Veuillez remplir tous les champs');
+        }
+      }
+    } finally {
+      setAuthLoading(false);
+    }
+  };
+
+  const handleGoogleAuth = async () => {
+    setAuthLoading(true);
+    setError('');
+
+    try {
+      const supabase = createClientComponentClient();
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: 'google',
+        options: {
+          redirectTo: `${window.location.origin}/dashboard`,
+        },
+      });
+
+      if (error) {
+        setError(error.message);
+      }
+    } catch (err) {
+      console.log('OAuth Google non configuré, connexion locale simulée');
+      // Simuler une connexion Google
+      localStorage.setItem('socialguard-demo-session', JSON.stringify({
+        email: 'user@google.com',
+        fullName: 'Utilisateur Google',
+        loginTime: new Date().toISOString(),
+        provider: 'google'
+      }));
+      router.push('/dashboard');
+    } finally {
+      setAuthLoading(false);
+    }
+  };
+
+  const handleDemoAccess = () => {
+    // Créer une session démo et rediriger
+    localStorage.setItem('socialguard-demo-session', JSON.stringify({
+      email: 'demo@socialguard.dev',
+      fullName: 'Utilisateur Démo',
+      loginTime: new Date().toISOString(),
+      provider: 'demo'
+    }));
+    router.push('/dashboard');
+  };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center">
+        <div className="text-center">
+          <Shield className="h-16 w-16 text-blue-600 mx-auto mb-4 animate-pulse" />
+          <h2 className="text-xl font-semibold text-gray-700">SocialGuard</h2>
+          <p className="text-gray-500">Chargement...</p>
         </div>
-      </main>
-      <footer className="row-start-3 flex gap-[24px] flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
-      </footer>
+      </div>
+    );
+  }
+
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center p-4">
+      <div className="w-full max-w-md">
+        {/* Header */}
+        <div className="text-center mb-8">
+          <div className="flex items-center justify-center space-x-2 mb-4">
+            <Shield className="h-10 w-10 text-blue-600" />
+            <span className="text-3xl font-bold text-gray-900">SocialGuard</span>
+          </div>
+          <p className="text-gray-600">
+            Monitoring et réponse automatique pour réseaux sociaux
+          </p>
+        </div>
+
+        {/* Notice application */}
+        <Alert className="mb-6 border-blue-200 bg-blue-50">
+          <Info className="h-4 w-4 text-blue-600" />
+          <AlertDescription className="text-blue-800">
+            <strong>Application SocialGuard</strong> - Cliquez "Accès démo" pour tester immédiatement ou connectez-vous avec vos identifiants.
+          </AlertDescription>
+        </Alert>
+
+        <Card>
+          <CardHeader className="text-center">
+            <CardTitle className="text-xl">
+              {loginMode === 'login' ? 'Connexion' : 'Créer un compte'}
+            </CardTitle>
+            <CardDescription>
+              {loginMode === 'login' 
+                ? 'Accédez à votre dashboard de monitoring' 
+                : 'Démarrez votre monitoring des réseaux sociaux'
+              }
+            </CardDescription>
+          </CardHeader>
+          
+          <CardContent className="space-y-4">
+            {error && (
+              <Alert variant="destructive">
+                <AlertDescription>{error}</AlertDescription>
+              </Alert>
+            )}
+
+            {/* Accès démo en premier */}
+            <Button
+              onClick={handleDemoAccess}
+              variant="outline"
+              className="w-full border-2 border-orange-500 text-orange-700 hover:bg-orange-50"
+              size="lg"
+            >
+              <Play className="mr-2 h-4 w-4" />
+              Accès démo (essayer immédiatement)
+            </Button>
+
+            <div className="relative">
+              <div className="absolute inset-0 flex items-center">
+                <span className="w-full border-t" />
+              </div>
+              <div className="relative flex justify-center text-xs uppercase">
+                <span className="bg-white px-2 text-gray-500">Ou</span>
+              </div>
+            </div>
+
+            {/* Google OAuth */}
+            <Button
+              type="button"
+              variant="outline"
+              onClick={handleGoogleAuth}
+              disabled={authLoading}
+              className="w-full"
+              size="lg"
+            >
+              <svg className="mr-2 h-4 w-4" viewBox="0 0 24 24">
+                <path
+                  fill="currentColor"
+                  d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
+                />
+                <path
+                  fill="currentColor"
+                  d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
+                />
+                <path
+                  fill="currentColor"
+                  d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"
+                />
+                <path
+                  fill="currentColor"
+                  d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
+                />
+              </svg>
+              Continuer avec Google
+            </Button>
+
+            <div className="relative">
+              <div className="absolute inset-0 flex items-center">
+                <span className="w-full border-t" />
+              </div>
+              <div className="relative flex justify-center text-xs uppercase">
+                <span className="bg-white px-2 text-gray-500">Ou par email</span>
+              </div>
+            </div>
+
+            {/* Form d'authentification */}
+            <form onSubmit={handleAuth} className="space-y-4">
+              {loginMode === 'signup' && (
+                <div className="space-y-2">
+                  <Label htmlFor="fullName">Nom complet</Label>
+                  <div className="relative">
+                    <Input
+                      id="fullName"
+                      name="fullName"
+                      type="text"
+                      value={formData.fullName}
+                      onChange={handleFormChange}
+                      placeholder="John Doe"
+                      required
+                    />
+                  </div>
+                </div>
+              )}
+
+              <div className="space-y-2">
+                <Label htmlFor="email">Adresse email</Label>
+                <div className="relative">
+                  <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+                  <Input
+                    id="email"
+                    name="email"
+                    type="email"
+                    value={formData.email}
+                    onChange={handleFormChange}
+                    placeholder="votre@email.com"
+                    className="pl-10"
+                    required
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="password">Mot de passe</Label>
+                <div className="relative">
+                  <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+                  <Input
+                    id="password"
+                    name="password"
+                    type={showPassword ? 'text' : 'password'}
+                    value={formData.password}
+                    onChange={handleFormChange}
+                    placeholder="••••••••"
+                    className="pl-10 pr-10"
+                    required
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                  >
+                    {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                  </button>
+                </div>
+              </div>
+
+              <Button
+                type="submit"
+                className="w-full"
+                disabled={authLoading}
+              >
+                {authLoading ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    {loginMode === 'login' ? 'Connexion...' : 'Création...'}
+                  </>
+                ) : (
+                  loginMode === 'login' ? 'Se connecter' : 'Créer le compte'
+                )}
+              </Button>
+            </form>
+
+            <div className="text-center text-sm text-gray-600">
+              {loginMode === 'login' ? (
+                <>
+                  Pas encore de compte ?{' '}
+                  <button
+                    onClick={() => setLoginMode('signup')}
+                    className="text-blue-600 hover:text-blue-500 font-medium"
+                  >
+                    Créer un compte
+                  </button>
+                </>
+              ) : (
+                <>
+                  Déjà un compte ?{' '}
+                  <button
+                    onClick={() => setLoginMode('login')}
+                    className="text-blue-600 hover:text-blue-500 font-medium"
+                  >
+                    Se connecter
+                  </button>
+                </>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Footer minimal */}
+        <div className="text-center mt-8 text-sm text-gray-500">
+          <p>SocialGuard • Monitoring des réseaux sociaux</p>
+        </div>
+      </div>
     </div>
   );
 }
