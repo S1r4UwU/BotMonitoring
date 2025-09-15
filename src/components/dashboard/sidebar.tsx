@@ -11,7 +11,8 @@ import {
   Settings, 
   User,
   LogOut,
-  Home
+  Home,
+  Bug
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
@@ -22,7 +23,7 @@ const navigation = [
   { name: 'Cas', href: '/dashboard/cases', icon: FileText },
   { name: 'Monitoring', href: '/dashboard/monitoring', icon: BarChart3 },
   { name: 'Paramètres', href: '/dashboard/settings', icon: Settings },
-  { name: 'Debug', href: '/debug', icon: Settings },
+  { name: 'Debug', href: '/dashboard/debug', icon: Bug },
 ];
 
 export function DashboardSidebar() {
