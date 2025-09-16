@@ -3,9 +3,7 @@ import { redditAPI } from '@/services/reddit-api';
 import { youtubeAPI } from '@/services/youtube-api';
 import { newsAPI } from '@/services/news-api';
 import sentimentAnalysis from '@/services/sentiment-analysis';
-import { EmailAlertsService } from '@/services/email-alerts';
-
-const emailAlerts = new EmailAlertsService();
+import emailAlerts from '@/services/email-alerts';
 
 export async function POST() {
   const results: any = {
