@@ -88,7 +88,7 @@ class FacebookAPIService {
   /**
    * Recherche des mentions par mots-clés sur Facebook
    */
-  async searchFacebookPosts(keywords: string[], limit = 25): Promise<Mention[]> {
+  async searchFacebookPosts(keywords: string[]): Promise<Mention[]> {
     if (!this.isConfigured()) {
       console.warn('Facebook API non configurée, retour de données vides');
       return [];
@@ -108,7 +108,7 @@ class FacebookAPIService {
         params: {
           q: searchQuery,
           type: 'post',
-          limit,
+          limit: 25,
           access_token: this.accessToken,
           fields: 'id,message,story,created_time,from{name,id},likes.summary(true),comments.summary(true),shares,permalink_url'
         },
@@ -144,7 +144,7 @@ class FacebookAPIService {
   /**
    * Recherche des mentions sur Instagram (via Facebook Graph API)
    */
-  async searchInstagramPosts(keywords: string[], limit = 25): Promise<Mention[]> {
+  async searchInstagramPosts(): Promise<Mention[]> {
     if (!this.isConfigured()) {
       console.warn('Instagram API non configurée, retour de données vides');
       return [];

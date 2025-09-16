@@ -5,7 +5,6 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { createAdminClient } from '@/lib/supabase';
-import { DemoDataService, isDemoMode } from '@/services/demo-data';
 import { sentimentAnalysis } from '@/services/sentiment-analysis';
 
 export async function GET(request: NextRequest) {

@@ -5,7 +5,7 @@ export async function GET() {
   try {
     const res = await newsAPI.testConnection();
     return NextResponse.json(res);
-  } catch (e) {
+  } catch {
     return NextResponse.json({ success: false, message: 'Erreur test NewsAPI' }, { status: 500 });
   }
 }

@@ -1,8 +1,8 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { createClientComponentClient } from '@/lib/supabase-client';
-import { Mention, MentionFilters, PaginatedResponse } from '@/models/types';
+import { Mention, MentionFilters } from '@/models/types';
 
 interface UseMentionsOptions {
   filters?: MentionFilters;
@@ -26,10 +26,9 @@ interface UseMentionsReturn {
 }
 
 export function useMentions({
-  filters = {},
   pageSize = 20,
   autoRefresh = false,
-  refreshInterval = 30000, // 30 secondes
+  refreshInterval = 120000, // 2 minutes
 }: UseMentionsOptions = {}): UseMentionsReturn {
   const [mentions, setMentions] = useState<Mention[]>([]);
   const [loading, setLoading] = useState(true);
@@ -38,13 +37,14 @@ export function useMentions({
   const [currentPage, setCurrentPage] = useState(1);
   
   const supabase = createClientComponentClient();
+  const fetchMentionsRef = useRef<typeof fetchMentions>();
 
   // Calculer les pages
   const totalPages = Math.ceil(totalCount / pageSize);
   const hasNextPage = currentPage < totalPages;
   const hasPrevPage = currentPage > 1;
 
-  const fetchMentions = async (page = 1) => {
+  const fetchMentions = useCallback(async (page = 1) => {
     try {
       setLoading(true);
       setError(null);
@@ -74,11 +74,14 @@ export function useMentions({
     } finally {
       setLoading(false);
     }
-  };
+  }, [pageSize]);
 
-  const refreshMentions = async () => {
+  // Mettre à jour la ref
+  fetchMentionsRef.current = fetchMentions;
+
+  const refreshMentions = useCallback(async () => {
     await fetchMentions(currentPage);
-  };
+  }, [currentPage, fetchMentions]);
 
   const updateMentionStatus = async (id: string, status: Mention['status']) => {
     try {
@@ -131,15 +134,19 @@ export function useMentions({
   // Effect pour charger les mentions initiales
   useEffect(() => {
     fetchMentions(1);
-  }, [JSON.stringify(filters)]); // Recharger quand les filtres changent
+  }, [fetchMentions]); // Inclure fetchMentions dans les dépendances
 
   // Effect pour l'auto-refresh
   useEffect(() => {
     if (!autoRefresh || refreshInterval <= 0) return;
 
-    const interval = setInterval(refreshMentions, refreshInterval);
+    const interval = setInterval(() => {
+      if (fetchMentionsRef.current) {
+        fetchMentionsRef.current(currentPage);
+      }
+    }, refreshInterval);
     return () => clearInterval(interval);
-  }, [autoRefresh, refreshInterval, currentPage, JSON.stringify(filters)]);
+  }, [autoRefresh, refreshInterval, currentPage]); // Utiliser la ref pour éviter les boucles
 
   return {
     mentions,

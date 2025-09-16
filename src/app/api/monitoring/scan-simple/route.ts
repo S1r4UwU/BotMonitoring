@@ -44,7 +44,7 @@ export async function POST(request: NextRequest) {
       console.warn('[WARN] Dédup simple échouée, insertion sans filtre');
     }
 
-    const existingIds = new Set((existing || []).map((r: any) => r.external_id));
+    const existingIds = new Set(((existing as Array<{ external_id: string }>) || []).map((r) => r.external_id));
     const toInsert = mentions
       .filter(m => !existingIds.has(m.external_id))
       .map(m => ({

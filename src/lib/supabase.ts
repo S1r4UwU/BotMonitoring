@@ -1,7 +1,6 @@
 // Configuration Supabase pour Next.js 14
 import { createClient } from '@supabase/supabase-js';
 import { createServerClient } from '@supabase/ssr';
-import { type CookieOptions } from '@supabase/ssr';
 // ATTENTION: n'importez pas `cookies` si ce fichier est utilisé côté client
 // Pour éviter les erreurs, on importera dynamiquement `cookies` uniquement côté serveur
 import { Database } from './database.types';
@@ -75,7 +74,7 @@ export const createRouteHandlerClient = (request: Request) => {
           }) || [];
           return cookies;
         },
-        setAll(cookiesToSet) {
+        setAll() {
           // Note: Dans un route handler, vous devrez gérer les cookies différemment
         },
       },
@@ -88,8 +87,8 @@ export const createAdminClient = () => {
   if (!supabaseUrl || !supabaseServiceKey) {
     console.warn('[WARN] Supabase admin non configuré - création client factice');
     // Retourner un client factice pour éviter les erreurs
-    return {
-      from: (table: string) => ({
+    const fakeAdmin = {
+      from: () => ({
         select: () => ({ data: [], count: 0, error: null }),
         insert: () => ({ data: null, error: { message: 'Supabase non configuré' } }),
         update: () => ({ data: null, error: { message: 'Supabase non configuré' } }),
@@ -100,7 +99,8 @@ export const createAdminClient = () => {
         range: () => ({ data: [], error: null, count: 0 }),
         upsert: () => ({ data: null, error: null })
       })
-    } as any;
+    } as const;
+    return fakeAdmin as unknown as ReturnType<typeof createClient<Database>>;
   }
   return createClient<Database>(supabaseUrl, supabaseServiceKey, {
     auth: {
@@ -195,7 +195,7 @@ export const checkCasePermission = async (
 
 // Helper pour la pagination
 export const paginateQuery = <T>(
-  query: any,
+  query: { range: (from: number, to: number) => T },
   page: number = 1,
   limit: number = 10
 ) => {
@@ -204,7 +204,9 @@ export const paginateQuery = <T>(
 };
 
 // Helper pour compter les résultats
-export const countQuery = async (query: any): Promise<number> => {
+export const countQuery = async (
+  query: { select: (columns: string, options: { count: 'exact'; head: true }) => Promise<{ count: number | null }> }
+): Promise<number> => {
   const { count } = await query.select('*', { count: 'exact', head: true });
   return count || 0;
 };

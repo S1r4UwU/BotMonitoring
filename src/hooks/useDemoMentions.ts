@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { DemoDataService } from '@/services/demo-data';
 import { Mention, MentionFilters } from '@/models/types';
 
@@ -42,7 +42,7 @@ export function useDemoMentions({
   const hasNextPage = currentPage < totalPages;
   const hasPrevPage = currentPage > 1;
 
-  const fetchMentions = async (page = 1) => {
+  const fetchMentions = useCallback(async (page = 1) => {
     try {
       setLoading(true);
       setError(null);
@@ -62,11 +62,11 @@ export function useDemoMentions({
     } finally {
       setLoading(false);
     }
-  };
+  }, [filters, pageSize]);
 
-  const refreshMentions = async () => {
+  const refreshMentions = useCallback(async () => {
     await fetchMentions(currentPage);
-  };
+  }, [currentPage, fetchMentions]);
 
   const updateMentionStatus = async (id: string, status: Mention['status']) => {
     try {
@@ -89,7 +89,7 @@ export function useDemoMentions({
   // Effect pour charger les mentions initiales
   useEffect(() => {
     fetchMentions(1);
-  }, [JSON.stringify(filters)]);
+  }, [fetchMentions]);
 
   // Effect pour l'auto-refresh
   useEffect(() => {
@@ -97,7 +97,7 @@ export function useDemoMentions({
 
     const interval = setInterval(refreshMentions, refreshInterval);
     return () => clearInterval(interval);
-  }, [autoRefresh, refreshInterval, currentPage, JSON.stringify(filters)]);
+  }, [autoRefresh, refreshInterval, currentPage, filters, refreshMentions]);
 
   return {
     mentions,

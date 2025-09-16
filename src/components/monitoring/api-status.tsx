@@ -9,9 +9,7 @@ import {
   Activity,
   CheckCircle,
   XCircle,
-  Clock,
   RefreshCw,
-  Zap,
   Mail,
   AlertTriangle
 } from 'lucide-react';
@@ -63,8 +61,8 @@ export function APIStatus() {
   useEffect(() => {
     fetchStatus();
     
-    // Refresh automatique toutes les 2 minutes
-    const interval = setInterval(fetchStatus, 2 * 60 * 1000);
+    // Refresh automatique toutes les 5 minutes
+    const interval = setInterval(fetchStatus, 5 * 60 * 1000);
     return () => clearInterval(interval);
   }, []);
 

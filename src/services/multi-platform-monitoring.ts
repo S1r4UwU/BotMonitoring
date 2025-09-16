@@ -14,7 +14,7 @@ export interface SearchResult {
   author?: string;
   url?: string;
   published_at: Date | string;
-  metrics?: Record<string, any>;
+  metrics?: Record<string, number | string | boolean>;
   sentiment_score?: number;
   status: 'new' | 'processed' | 'responded' | 'ignored';
 }
@@ -47,7 +47,7 @@ export class MultiPlatformMonitoringService {
       const platform = this.platforms.get(platformName);
       if (!platform) return [] as SearchResult[];
       try {
-        const results = await platform.search(keywords, filters as any);
+        const results = await platform.search(keywords, filters);
         return results as unknown as SearchResult[];
       } catch {
         return [] as SearchResult[];

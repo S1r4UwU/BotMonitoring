@@ -72,8 +72,8 @@ export default function CaseDetailPage() {
         setMentions(jsonMentions.data);
         setTotal(jsonMentions.count || 0);
 
-      } catch (e) {
-        setError(e instanceof Error ? e.message : 'Erreur');
+      } catch {
+        setError('Erreur');
       } finally {
         setLoading(false);
       }
@@ -188,7 +188,7 @@ export default function CaseDetailPage() {
                               } else {
                                 alert(j.error || 'Erreur génération réponse');
                               }
-                            } catch (e) {
+                            } catch {
                               alert('Erreur génération réponse');
                             }
                           }}>Répondre</Button>

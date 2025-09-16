@@ -1,5 +1,17 @@
 import { Mention } from '@/models/types';
 
+interface MastodonStatus {
+  id: string | number;
+  content: string;
+  url?: string;
+  uri?: string;
+  created_at: string;
+  account?: { username?: string };
+  favourites_count?: number;
+  replies_count?: number;
+  reblogs_count?: number;
+}
+
 class MastodonAPIService {
   private instanceURL: string;
 
@@ -20,9 +32,9 @@ class MastodonAPIService {
     const url = `${this.instanceURL}/api/v2/search?q=${encodeURIComponent(keyword)}&type=statuses&limit=${limit}`;
     const res = await fetch(url, { headers: { 'Content-Type': 'application/json' } });
     if (!res.ok) return [];
-    const data = await res.json();
+    const data = await res.json() as { statuses?: MastodonStatus[] };
     const nowIso = new Date().toISOString();
-    return (data.statuses || []).map((status: any) => ({
+    return (data.statuses || []).map((status: MastodonStatus) => ({
       id: `mastodon_${status.id}`,
       case_id: '',
       platform: 'mastodon',

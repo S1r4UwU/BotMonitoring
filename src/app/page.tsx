@@ -18,10 +18,9 @@ import {
   Play,
   Info
 } from 'lucide-react';
-import { isDemoMode } from '@/services/demo-data';
+// import { isDemoMode } from '@/services/demo-data';
 
 export default function HomePage() {
-  const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
   const [authLoading, setAuthLoading] = useState(false);
   const [error, setError] = useState('');
@@ -34,7 +33,6 @@ export default function HomePage() {
   });
   
   const router = useRouter();
-  const demoMode = isDemoMode();
 
   useEffect(() => {
     const checkAuth = async () => {
@@ -55,14 +53,14 @@ export default function HomePage() {
             router.push('/dashboard');
             return;
           }
-        } catch (supabaseError) {
+        } catch {
           console.log('Supabase non configuré ou erreur - mode standalone');
         }
 
-        setUser(null);
-      } catch (err) {
-        console.error('Erreur:', err);
-        setUser(null);
+        // aucune session
+      } catch {
+        console.error('Erreur:');
+        // aucune session
       } finally {
         setLoading(false);
       }
@@ -124,7 +122,7 @@ export default function HomePage() {
             router.push('/dashboard');
           }
         }
-      } catch (supabaseError) {
+      } catch {
         // Si Supabase non configuré, connexion locale simulée
         console.log('Supabase non configuré, connexion locale simulée');
         
@@ -160,7 +158,7 @@ export default function HomePage() {
       if (error) {
         setError(error.message);
       }
-    } catch (err) {
+    } catch {
       console.log('OAuth Google non configuré, connexion locale simulée');
       // Simuler une connexion Google
       localStorage.setItem('socialguard-demo-session', JSON.stringify({
@@ -216,7 +214,7 @@ export default function HomePage() {
         <Alert className="mb-6 border-blue-200 bg-blue-50">
           <Info className="h-4 w-4 text-blue-600" />
           <AlertDescription className="text-blue-800">
-            <strong>Application SocialGuard</strong> - Cliquez "Accès démo" pour tester immédiatement ou connectez-vous avec vos identifiants.
+            <strong>Application SocialGuard</strong> - Cliquez &quot;Accès démo&quot; pour tester immédiatement ou connectez-vous avec vos identifiants.
           </AlertDescription>
         </Alert>
 
@@ -228,8 +226,7 @@ export default function HomePage() {
             <CardDescription>
               {loginMode === 'login' 
                 ? 'Accédez à votre dashboard de monitoring' 
-                : 'Démarrez votre monitoring des réseaux sociaux'
-              }
+                : 'Démarrez votre monitoring des réseaux sociaux'}
             </CardDescription>
           </CardHeader>
           
@@ -269,7 +266,7 @@ export default function HomePage() {
               className="w-full"
               size="lg"
             >
-              <svg className="mr-2 h-4 w-4" viewBox="0 0 24 24">
+              <svg className="mr-2 h-4 w-4" viewBox="0 0 24 24" aria-hidden>
                 <path
                   fill="currentColor"
                   d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
@@ -295,7 +292,7 @@ export default function HomePage() {
                 <span className="w-full border-t" />
               </div>
               <div className="relative flex justify-center text-xs uppercase">
-                <span className="bg-white px-2 text-gray-500">Ou par email</span>
+                <span className="bg-white px-2 text-gray-500">Ou par e-mail</span>
               </div>
             </div>
 

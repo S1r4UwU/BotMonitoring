@@ -1,9 +1,8 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { 
   Play,
@@ -13,7 +12,8 @@ import {
   Search,
   CheckCircle,
   XCircle,
-  Clock
+  Clock,
+  AlertTriangle
 } from 'lucide-react';
 
 interface ScanResult {
@@ -38,6 +38,53 @@ export function RealTimeScanner() {
   const [autoScan, setAutoScan] = useState(false);
   const [error, setError] = useState('');
 
+  const fetchStatsRef = useRef<typeof fetchStats>();
+
+  // Fetch des statistiques de monitoring
+  const fetchStats = useCallback(async () => {
+    try {
+      const response = await fetch('/api/monitoring/scan');
+      if (response.ok) {
+        const data = await response.json();
+        setStats(data.stats);
+      }
+    } catch (err) {
+      console.error('Erreur récupération stats monitoring:', err);
+    }
+  }, []);
+
+  // Mettre à jour la ref
+  fetchStatsRef.current = fetchStats;
+
+  const handleManualScan = useCallback(async () => {
+    setIsScanning(true);
+    setError('');
+
+    try {
+      const response = await fetch('/api/monitoring/scan', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+          caseId: 'demo-case-1'
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+
+      const result = await response.json();
+      setLastScan(result);
+      await fetchStats();
+
+    } catch (err) {
+      console.error('Erreur scan manuel:', err);
+      setError(err instanceof Error ? err.message : 'Erreur inconnue');
+    } finally {
+      setIsScanning(false);
+    }
+  }, [fetchStats]);
+
   // Auto-scan toutes les 5 minutes si activé
   useEffect(() => {
     if (!autoScan) return;
@@ -49,63 +96,22 @@ export function RealTimeScanner() {
     }, 5 * 60 * 1000);
 
     return () => clearInterval(interval);
-  }, [autoScan, isScanning]);
-
-  // Fetch des statistiques de monitoring
-  const fetchStats = async () => {
-    try {
-      const response = await fetch('/api/monitoring/scan');
-      if (response.ok) {
-        const data = await response.json();
-        setStats(data.stats);
-      }
-    } catch (err) {
-      console.error('Erreur récupération stats monitoring:', err);
-    }
-  };
+  }, [autoScan, isScanning, handleManualScan]);
 
   useEffect(() => {
     fetchStats();
     
     // Refresh stats toutes les 30 secondes
-    const interval = setInterval(fetchStats, 30 * 1000);
-    return () => clearInterval(interval);
-  }, []);
-
-  const handleManualScan = async () => {
-    setIsScanning(true);
-    setError('');
-
-    try {
-      // En mode démo ou pour test, utiliser un cas fictif
-      const response = await fetch('/api/monitoring/scan', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
-          caseId: 'demo-case-1' // cas de démo par défaut
-        })
-      });
-
-      if (!response.ok) {
-        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+    const interval = setInterval(() => {
+      if (fetchStatsRef.current) {
+        fetchStatsRef.current();
       }
-
-      const result = await response.json();
-      setLastScan(result);
-
-      // Refresh les stats après le scan
-      await fetchStats();
-
-    } catch (err) {
-      console.error('Erreur scan manuel:', err);
-      setError(err instanceof Error ? err.message : 'Erreur inconnue');
-    } finally {
-      setIsScanning(false);
-    }
-  };
+    }, 120 * 1000); // 2 minutes
+    return () => clearInterval(interval);
+  }, [fetchStats]); // Inclure fetchStats dans les dépendances
 
   const toggleAutoScan = () => {
-    setAutoScan(!autoScan);
+    setAutoScan((prev) => !prev);
   };
 
   const formatTime = (date: Date | string) => {
@@ -223,6 +229,7 @@ export function RealTimeScanner() {
 
             {stats.errorsCount > 0 && (
               <div className="flex items-center space-x-2 text-sm text-orange-600">
+                {/* @ts-expect-error lucide-react export already imported above; using AlertTriangle from lucide-react */}
                 <AlertTriangle className="h-4 w-4" />
                 <span>{stats.errorsCount} erreurs depuis le dernier redémarrage</span>
               </div>

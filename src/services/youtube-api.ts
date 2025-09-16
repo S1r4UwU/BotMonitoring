@@ -124,14 +124,10 @@ class YouTubeAPIService {
   }
 
   async testConnection(): Promise<{ success: boolean; message: string }> {
-    if (!this.isConfigured()) {
-      return { success: false, message: 'YOUTUBE_API_KEY manquante' };
-    }
-    // Ping léger: recherche sur un mot-clé commun
     try {
-      await this.searchVideos('test', 1);
+      await this.search(['test'], 1);
       return { success: true, message: 'Connexion YouTube OK' };
-    } catch (e) {
+    } catch {
       return { success: false, message: 'Erreur YouTube' };
     }
   }

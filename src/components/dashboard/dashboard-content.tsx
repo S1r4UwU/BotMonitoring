@@ -1,20 +1,62 @@
 'use client';
 
+import { useEffect, useState } from 'react';
 import { StatsCards, PlatformStats, ResponseStats } from './stats-cards';
 import { MentionsTable } from './mentions-table';
 import { APIStatus } from '@/components/monitoring/api-status';
 import { RealTimeScanner } from '@/components/monitoring/real-time-scanner';
 import { BudgetMonitor } from '@/components/monitoring/budget-monitor';
 import { useDashboardStats } from '@/hooks/useDashboardStats';
-import { useDemoDashboardStats } from '@/hooks/useDemoDashboardStats';
-import { isDemoMode } from '@/services/demo-data';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { AlertTriangle, RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { useToast } from '@/components/ui/toast';
 
 export function DashboardContent() {
-  // TOUJOURS utiliser les vraies données maintenant
-  const { stats, loading, error, refreshStats } = useDashboardStats();
+  // Données principales (requête initiale) - autoRefresh désactivé pour éviter les boucles
+  const { stats, loading, error, refreshStats } = useDashboardStats({ autoRefresh: false });
+  // Temps réel
+  interface LiveStats {
+    ts?: number;
+    newCriticalMentions?: number;
+    newPositiveMentions?: number;
+    timeline?: unknown[];
+    sentiments?: Record<string, unknown>;
+    platforms?: Record<string, unknown>;
+  }
+  const [, setRealTimeStats] = useState<LiveStats | null>(null);
+  const [isLive, setIsLive] = useState(false);
+  const { toast } = useToast();
+
+  // Connexion temps réel via SSE
+  useEffect(() => {
+    const es = new EventSource('/api/dashboard/live');
+    es.onmessage = (event) => {
+      try {
+        const data = JSON.parse(event.data);
+        setRealTimeStats(data);
+        setIsLive(true);
+
+        if (data.newCriticalMentions > 0) {
+          toast({
+            title: '🚨 Alertes critiques',
+            description: `${data.newCriticalMentions} nouvelles mentions critiques détectées`,
+            variant: 'destructive',
+          });
+        }
+
+        if (data.newPositiveMentions > 5) {
+          toast({
+            title: '📈 Pic positif',
+            description: `${data.newPositiveMentions} mentions positives détectées`,
+            variant: 'success',
+          });
+        }
+      } catch {}
+    };
+    es.onerror = () => setIsLive(false);
+    return () => es.close();
+  }, [toast]);
 
   if (error) {
     return (
@@ -47,6 +89,16 @@ export function DashboardContent() {
 
   return (
     <div className="space-y-8">
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl md:text-3xl font-bold">Dashboard SocialGuard</h1>
+          <p className="text-muted-foreground">Vue d&apos;ensemble de votre monitoring</p>
+        </div>
+        <div className="flex items-center gap-2">
+          <div className={`w-2 h-2 rounded-full ${isLive ? 'bg-green-500 animate-pulse' : 'bg-red-500'}`} />
+          <span className="text-sm">{isLive ? 'Temps réel' : 'Hors ligne'}</span>
+        </div>
+      </div>
       {/* Cartes de statistiques principales */}
       {stats && (
         <StatsCards stats={stats} loading={loading} />
@@ -56,7 +108,7 @@ export function DashboardContent() {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         {/* Tableau des mentions (2/3 de la largeur) */}
         <div className="lg:col-span-2">
-          <MentionsTable maxItems={10} autoRefresh={true} />
+          <MentionsTable maxItems={10} autoRefresh={false} />
         </div>
 
         {/* Panneaux de monitoring (1/3 de la largeur) */}

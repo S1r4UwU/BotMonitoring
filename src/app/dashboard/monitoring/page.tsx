@@ -4,7 +4,7 @@ import { APIStatus } from '@/components/monitoring/api-status';
 import { RealTimeScanner } from '@/components/monitoring/real-time-scanner';
 import { BudgetMonitor } from '@/components/monitoring/budget-monitor';
 import { Button } from '@/components/ui/button';
-import { Settings, Play, BarChart3, Plus } from 'lucide-react';
+import { Settings, BarChart3, Plus } from 'lucide-react';
 
 export default function MonitoringPage() {
   return (
@@ -34,7 +34,7 @@ export default function MonitoringPage() {
         <BarChart3 className="h-4 w-4 text-blue-600" />
         <AlertDescription className="text-blue-800">
           <strong>Monitoring actif</strong> - Cette page vous permet de surveiller et contrôler 
-          vos intégrations de réseaux sociaux en temps réel avec un budget maîtrisé.
+          vos intégrations de réseaux sociaux en temps réel avec un budget ma&icirc;tris&eacute;.
         </AlertDescription>
       </Alert>
 
@@ -70,7 +70,7 @@ export default function MonitoringPage() {
                 <li>• Ajout/suppression de mots-clés</li>
                 <li>• Configuration des plateformes</li>
                 <li>• Intervalles de surveillance</li>
-                <li>• Seuils d'alerte personnalisés</li>
+                <li>• Seuils d&apos;alerte personnalisés</li>
                 <li>• Exclusion de mots parasites</li>
               </ul>
             </div>

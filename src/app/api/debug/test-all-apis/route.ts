@@ -5,8 +5,25 @@ import { newsAPI } from '@/services/news-api';
 import sentimentAnalysis from '@/services/sentiment-analysis';
 import emailAlerts from '@/services/email-alerts';
 
+interface TestResults {
+  success: boolean;
+  results_count?: number;
+  first_result?: string;
+  message: string;
+  error?: string;
+  sentiment_score?: number;
+  confidence?: number;
+  method?: string;
+  email_id?: string | null;
+}
+
+interface APITestResponse {
+  timestamp: string;
+  tests: Record<string, TestResults>;
+}
+
 export async function POST() {
-  const results: any = {
+  const results: APITestResponse = {
     timestamp: new Date().toISOString(),
     tests: {}
   };
@@ -20,8 +37,9 @@ export async function POST() {
       first_result: redditResults[0]?.content?.slice(0, 80) || 'Aucun résultat',
       message: `${redditResults.length} posts Reddit trouvés`
     };
-  } catch (error: any) {
-    results.tests.reddit = { success: false, error: error?.message, message: 'Erreur Reddit API' };
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : 'unknown';
+    results.tests.reddit = { success: false, error: message, message: 'Erreur Reddit API' };
   }
 
   // YouTube
@@ -33,8 +51,9 @@ export async function POST() {
       first_result: youtubeResults[0]?.content?.slice(0, 80) || 'Aucun résultat',
       message: `${youtubeResults.length} vidéos YouTube trouvées`
     };
-  } catch (error: any) {
-    results.tests.youtube = { success: false, error: error?.message, message: 'Erreur YouTube API' };
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : 'unknown';
+    results.tests.youtube = { success: false, error: message, message: 'Erreur YouTube API' };
   }
 
   // NewsAPI
@@ -46,8 +65,9 @@ export async function POST() {
       first_result: newsResults[0]?.content?.slice(0, 80) || 'Aucun résultat',
       message: `${newsResults.length} articles trouvés`
     };
-  } catch (error: any) {
-    results.tests.newsapi = { success: false, error: error?.message, message: 'Erreur News API' };
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : 'unknown';
+    results.tests.newsapi = { success: false, error: message, message: 'Erreur News API' };
   }
 
   // Claude IA
@@ -60,8 +80,9 @@ export async function POST() {
       method: aiResult.method,
       message: `Sentiment analysé: ${aiResult.score}/5 (${aiResult.method})`
     };
-  } catch (error: any) {
-    results.tests.anthropic = { success: false, error: error?.message, message: 'Erreur Claude IA' };
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : 'unknown';
+    results.tests.anthropic = { success: false, error: message, message: 'Erreur Claude IA' };
   }
 
   // Resend Email
@@ -70,10 +91,11 @@ export async function POST() {
     results.tests.resend = {
       success: emailResult.success,
       message: emailResult.message,
-      email_id: (emailResult as any).emailId || null
+      email_id: emailResult.emailId || null
     };
-  } catch (error: any) {
-    results.tests.resend = { success: false, error: error?.message, message: 'Erreur Resend Email' };
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : 'unknown';
+    results.tests.resend = { success: false, error: message, message: 'Erreur Resend Email' };
   }
 
   return NextResponse.json(results);

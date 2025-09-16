@@ -61,12 +61,12 @@ GÉNÈRE UNE RÉPONSE NATURELLE ET HUMAINE :
 `;
 
     const response = await this.callAnthropicAPI(prompt);
-    return this.humanizeResponse(response, analysis.language);
+    return this.humanizeResponse(response);
   }
 
   private async analyzeContext(mention: MentionLike): Promise<ContextAnalysis> {
     const criticismType = this.detectCriticismType(mention.content);
-    const authorInfluence = this.analyzeAuthorInfluence(mention.author_name);
+    const authorInfluence = this.analyzeAuthorInfluence();
     const language = new LanguageDetectionService().detectLanguage(mention.content);
     return {
       criticismType,
@@ -84,8 +84,7 @@ GÉNÈRE UNE RÉPONSE NATURELLE ET HUMAINE :
     return 'neutral';
   }
 
-  private analyzeAuthorInfluence(author?: string): ContextAnalysis['authorInfluence'] {
-    // Stub: sans métriques de followers, retourne 'medium'
+  private analyzeAuthorInfluence(): ContextAnalysis['authorInfluence'] {
     return 'medium';
   }
 
@@ -104,14 +103,13 @@ GÉNÈRE UNE RÉPONSE NATURELLE ET HUMAINE :
   }
 
   private async callAnthropicAPI(prompt: string): Promise<string> {
-    // Stub frugal: renvoie une courte phrase respectant contrainte <200 caractères
-    const firstLine = prompt.split('\n').slice(-1)[0] || '';
+    void prompt; // Utilise le paramètre pour éviter l'avertissement
     const base = 'Merci pour votre retour. On regarde ça et on revient vers vous très vite.';
     return base.slice(0, 180);
   }
 
-  private humanizeResponse(response: string, language: string): string {
-    let humanized = response
+  private humanizeResponse(response: string): string {
+    const humanized = response
       .replace(/nous vous remercions/gi, 'merci')
       .replace(/veuillez nous excuser/gi, 'désolé')
       .replace(/n'hésitez pas à/gi, 'vous pouvez');

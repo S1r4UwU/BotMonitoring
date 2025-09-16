@@ -5,12 +5,13 @@ import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 
 export default function RedditDebugPage() {
-  const [debugResults, setDebugResults] = useState<any>({});
+  type JsonLike = Record<string, unknown> | Array<unknown> | string | number | boolean | null;
+  const [debugResults, setDebugResults] = useState<JsonLike>({});
   const [isDebugging, setIsDebugging] = useState(false);
 
   const runCompleteDebug = async () => {
     setIsDebugging(true);
-    const results: any = {};
+    const results: Record<string, unknown> = {};
     try {
       results.envCheck = await fetch('/api/debug/reddit-env').then(r => r.json());
       results.authCheck = await fetch('/api/debug/reddit-auth').then(r => r.json());
@@ -18,11 +19,11 @@ export default function RedditDebugPage() {
       const keywords = ['cat','dog','news','funny','pizza','food'];
       results.keywordTests = {};
       for (const k of keywords) {
-        results.keywordTests[k] = await fetch(`/api/debug/reddit-search?q=${encodeURIComponent(k)}&limit=5`).then(r => r.json());
+        (results.keywordTests as Record<string, unknown>)[k] = await fetch(`/api/debug/reddit-search?q=${encodeURIComponent(k)}&limit=5`).then(r => r.json());
       }
       results.languageFilter = await fetch('/api/debug/language-filter').then(r => r.json());
-    } catch (e: any) {
-      results.error = e?.message || 'unknown';
+    } catch (e: unknown) {
+      results.error = e instanceof Error ? e.message : 'unknown';
     } finally {
       setDebugResults(results);
       setIsDebugging(false);
@@ -51,7 +52,7 @@ export default function RedditDebugPage() {
   );
 }
 
-function DebugCard({ title, data }: { title: string; data: any }) {
+function DebugCard({ title, data }: { title: string; data: unknown }) {
   return (
     <Card className="p-4">
       <h3 className="font-medium mb-2">{title}</h3>

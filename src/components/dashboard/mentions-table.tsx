@@ -26,8 +26,8 @@ import {
 } from 'lucide-react';
 import { Mention } from '@/models/types';
 import { useMentions } from '@/hooks/useMentions';
-import { useDemoMentions } from '@/hooks/useDemoMentions';
-import { isDemoMode } from '@/services/demo-data';
+// import { useDemoMentions } from '@/hooks/useDemoMentions';
+// import { isDemoMode } from '@/services/demo-data';
 
 interface MentionsTableProps {
   showFilters?: boolean;
@@ -40,7 +40,7 @@ export function MentionsTable({
   maxItems,
   autoRefresh = true 
 }: MentionsTableProps) {
-  const [filters, setFilters] = useState({});
+  const [filters] = useState<Record<string, unknown>>({});
   
   // TOUJOURS utiliser les vraies données maintenant
   const {
@@ -82,7 +82,7 @@ export function MentionsTable({
     } as const;
 
     const config = statusConfig[status];
-    return <Badge variant={config.variant as any}>{config.label}</Badge>;
+    return <Badge variant={config.variant as 'default' | 'secondary' | 'outline'}>{config.label}</Badge>;
   };
 
   const getPlatformIcon = (platform: string) => {

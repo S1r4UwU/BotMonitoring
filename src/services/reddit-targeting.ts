@@ -1,5 +1,9 @@
 export class SubredditTargetingService {
-  private subredditsByLanguage: Record<string, any> = {
+  private subredditsByLanguage: Record<string, {
+    general?: string[];
+    cities?: string[];
+    topics?: Record<string, string[]>;
+  }> = {
     fr: {
       general: ['france', 'french', 'rance', 'quebec', 'belgium', 'switzerland', 'luxembourg'],
       cities: ['paris', 'lyon', 'marseille', 'toulouse', 'bordeaux', 'lille', 'nantes', 'strasbourg', 'montpellier', 'rennes'],

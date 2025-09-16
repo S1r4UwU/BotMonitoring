@@ -77,7 +77,7 @@ export async function POST(request: NextRequest) {
       }, { status: 400 });
     }
 
-    const { name, description, keywords, platforms, filters } = validationResult.data;
+    const { name, description, keywords, platforms } = validationResult.data;
 
     // FORCER la vraie insertion Supabase DB
     const supabase = createAdminClient();

@@ -47,7 +47,7 @@ export interface Mention {
   urgency_score: number; // 1 à 10
   keywords_matched: string[];
   status: 'new' | 'processed' | 'responded' | 'ignored';
-  metadata: Record<string, any>; // Données supplémentaires
+  metadata: Record<string, unknown>; // Données supplémentaires
   created_at: string;
 }
 
@@ -97,7 +97,7 @@ export interface Integration {
   id: string;
   case_id: string;
   platform: Platform;
-  config: Record<string, any>; // Configuration spécifique
+  config: Record<string, unknown>; // Configuration spécifique
   is_active: boolean;
   last_sync?: string;
   rate_limit_reset?: string;
@@ -275,11 +275,11 @@ export interface AlertFilters {
 export interface APIError {
   code: string;
   message: string;
-  details?: Record<string, any>;
+  details?: Record<string, unknown>;
 }
 
 export interface ValidationError {
   field: string;
   message: string;
-  value?: any;
+  value?: unknown;
 }

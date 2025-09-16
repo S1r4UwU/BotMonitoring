@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { DemoDataService } from '@/services/demo-data';
 import { DashboardMetrics } from '@/models/types';
 
@@ -24,7 +24,7 @@ export function useDemoDashboardStats({
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const fetchStats = async () => {
+  const fetchStats = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
@@ -41,16 +41,16 @@ export function useDemoDashboardStats({
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
-  const refreshStats = async () => {
+  const refreshStats = useCallback(async () => {
     await fetchStats();
-  };
+  }, [fetchStats]);
 
   // Effect pour charger les stats initiales
   useEffect(() => {
     fetchStats();
-  }, []);
+  }, [fetchStats]);
 
   // Effect pour l'auto-refresh
   useEffect(() => {
@@ -58,7 +58,7 @@ export function useDemoDashboardStats({
 
     const interval = setInterval(refreshStats, refreshInterval);
     return () => clearInterval(interval);
-  }, [autoRefresh, refreshInterval]);
+  }, [autoRefresh, refreshInterval, refreshStats]);
 
   return {
     stats,

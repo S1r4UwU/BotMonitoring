@@ -5,9 +5,10 @@ import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 
 export default function DebugPage() {
-  const [diagnostics, setDiagnostics] = useState<any>(null);
-  const [apiTests, setApiTests] = useState<any>(null);
-  const [macronTest, setMacronTest] = useState<any>(null);
+  type JsonValue = Record<string, unknown> | Array<unknown> | string | number | boolean | null;
+  const [diagnostics, setDiagnostics] = useState<JsonValue | null>(null);
+  const [apiTests, setApiTests] = useState<JsonValue | null>(null);
+  const [macronTest, setMacronTest] = useState<JsonValue | null>(null);
   const [loading, setLoading] = useState<string>('');
 
   const runFullDiagnostic = async () => {

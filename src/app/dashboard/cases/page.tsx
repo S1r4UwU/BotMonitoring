@@ -29,7 +29,6 @@ export default function CasesPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [showCreateForm, setShowCreateForm] = useState(false);
-  const [selectedCase, setSelectedCase] = useState<Case | null>(null);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
 
   const fetchCases = async () => {
@@ -61,7 +60,7 @@ export default function CasesPage() {
     fetchCases();
   }, []);
 
-  const handleCreateSuccess = (caseData: any) => {
+  const handleCreateSuccess = (caseData: { id: string; name: string }) => {
     console.log('[INFO] Cas créé avec succès:', caseData);
     setShowCreateForm(false);
     fetchCases(); // Recharger la liste
@@ -75,7 +74,7 @@ export default function CasesPage() {
     } as const;
 
     const config = statusConfig[status as keyof typeof statusConfig] || statusConfig.active;
-    return <Badge variant={config.variant as any}>{config.label}</Badge>;
+    return <Badge variant={config.variant as 'default' | 'secondary' | 'outline'}>{config.label}</Badge>;
   };
 
   const parseArrayField = (field: string) => {

@@ -17,7 +17,7 @@ export default function ResponsesPage() {
       <Alert className="border-amber-200 bg-amber-50">
         <AlertDescription className="text-amber-800">
           <strong>En développement:</strong> Le système de réponses automatiques sera disponible prochainement.
-          Cette fonctionnalité utilisera l'IA de manière frugale pour générer des réponses pertinentes.
+          Cette fonctionnalité utilisera l&apos;IA de manière frugale pour générer des réponses pertinentes.
         </AlertDescription>
       </Alert>
 

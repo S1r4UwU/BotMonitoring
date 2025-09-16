@@ -1,5 +1,3 @@
-import { Mention } from '@/models/types';
-
 /**
  * Discord: Lecture requiert généralement un bot ajouté aux serveurs/canaux et l'intent MESSAGE CONTENT.
  * Ici on prévoit un endpoint custom backend (non implémenté) ou un cache; à défaut, on retourne vide si non accessible.
@@ -15,16 +13,14 @@ class DiscordAPIService {
 
   isConfigured(): boolean { return !!this.botToken; }
 
-  async search(_keywords: string[]): Promise<Mention[]> {
-    // Sans connexion Gateway/discord.js et intents, on ne peut pas lister messages arbitraires.
-    // Stratégie: retourner vide mais garder l’interface prête.
+  async search(keywords: string[]): Promise<Array<{ id: string; case_id: string; platform: 'discord'; external_id: string; content: string; author_name?: string; url?: string; published_at?: string; discovered_at: string; urgency_score: number; keywords_matched: string[]; status: 'new' | 'processed' | 'responded' | 'ignored'; metadata: Record<string, unknown>; created_at: string }>> {
+    void keywords.length; // Utilise le paramètre pour éviter l'avertissement
     return [];
   }
 
   getRateLimitInfo() { return null; }
   async testConnection(): Promise<{ success: boolean; message: string }> {
     if (!this.isConfigured()) return { success: false, message: 'DISCORD_BOT_TOKEN manquant' };
-    // Sans gateway, on se contente de valider la présence du token.
     return { success: true, message: 'Token Discord présent (implémentation lecture à brancher si besoin)' };
   }
 }

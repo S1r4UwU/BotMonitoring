@@ -16,7 +16,7 @@ CREATE TABLE IF NOT EXISTS cases (
 CREATE TABLE IF NOT EXISTS mentions (
   id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
   case_id UUID REFERENCES cases(id) ON DELETE CASCADE,
-  platform TEXT NOT NULL CHECK (platform IN ('facebook', 'instagram', 'reddit')),
+  platform TEXT NOT NULL CHECK (platform IN ('facebook', 'instagram', 'reddit', 'youtube', 'hackernews', 'newsapi', 'mastodon', 'telegram', 'discord')),
   external_id TEXT NOT NULL,
   content TEXT NOT NULL,
   author_name TEXT,
@@ -98,3 +98,30 @@ CREATE TABLE IF NOT EXISTS responses (
 
 ALTER TABLE responses ENABLE ROW LEVEL SECURITY;
 CREATE POLICY IF NOT EXISTS "Allow all operations responses" ON responses FOR ALL USING (true);
+
+-- Corriger et élargir la contrainte platform si existante déjà
+ALTER TABLE mentions DROP CONSTRAINT IF EXISTS mentions_platform_check;
+ALTER TABLE mentions ADD CONSTRAINT mentions_platform_check
+CHECK (platform IN ('facebook', 'instagram', 'reddit', 'youtube', 'hackernews', 'newsapi', 'mastodon', 'telegram', 'discord'));
+
+-- Table alerts pour gestion des alertes intelligentes
+CREATE TABLE IF NOT EXISTS alerts (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  case_id UUID REFERENCES cases(id) ON DELETE CASCADE,
+  mention_id UUID REFERENCES mentions(id) ON DELETE CASCADE,
+  type TEXT NOT NULL CHECK (type IN ('sentiment_drop', 'volume_spike', 'keyword_match', 'urgent')),
+  title TEXT NOT NULL,
+  description TEXT,
+  severity TEXT DEFAULT 'medium' CHECK (severity IN ('low', 'medium', 'high', 'critical')),
+  status TEXT DEFAULT 'new' CHECK (status IN ('new', 'acknowledged', 'resolved', 'dismissed')),
+  notified_users JSONB DEFAULT '[]',
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_alerts_case_id ON alerts(case_id);
+CREATE INDEX IF NOT EXISTS idx_alerts_status ON alerts(status);
+CREATE INDEX IF NOT EXISTS idx_alerts_severity ON alerts(severity);
+
+ALTER TABLE alerts ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Allow all operations alerts" ON alerts FOR ALL USING (true);

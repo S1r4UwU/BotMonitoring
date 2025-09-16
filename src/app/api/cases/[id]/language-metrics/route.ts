@@ -19,7 +19,7 @@ export async function GET(_req: Request, { params }: { params: { id: string } })
     let filtered = 0;
     let confidenceSum = 0;
 
-    (mentions || []).forEach((m: any) => {
+    ((mentions as Array<{ content: string }>) || []).forEach((m) => {
       const det = langService.detectLanguageDetailed(m.content || '');
       distribution[det.language] = (distribution[det.language] || 0) + 1;
       if (det.confidence >= 0.10) highConfidence++;

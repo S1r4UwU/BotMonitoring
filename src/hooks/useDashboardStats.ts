@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { createClientComponentClient } from '@/lib/supabase-client';
 import { DashboardMetrics } from '@/models/types';
 
@@ -18,15 +18,16 @@ interface UseDashboardStatsReturn {
 
 export function useDashboardStats({
   autoRefresh = true,
-  refreshInterval = 60000, // 1 minute
+  refreshInterval = 180000, // 3 minutes
 }: UseDashboardStatsOptions = {}): UseDashboardStatsReturn {
   const [stats, setStats] = useState<DashboardMetrics | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   
   const supabase = createClientComponentClient();
+  const fetchStatsRef = useRef<typeof fetchStats>();
 
-  const fetchStats = async () => {
+  const fetchStats = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
@@ -152,24 +153,31 @@ export function useDashboardStats({
     } finally {
       setLoading(false);
     }
-  };
+  }, [supabase]);
 
-  const refreshStats = async () => {
+  // Mettre à jour la ref
+  fetchStatsRef.current = fetchStats;
+
+  const refreshStats = useCallback(async () => {
     await fetchStats();
-  };
+  }, [fetchStats]);
 
   // Effect pour charger les stats initiales
   useEffect(() => {
     fetchStats();
-  }, []);
+  }, [fetchStats]); // Inclure fetchStats dans les dépendances
 
   // Effect pour l'auto-refresh
   useEffect(() => {
     if (!autoRefresh || refreshInterval <= 0) return;
 
-    const interval = setInterval(refreshStats, refreshInterval);
+    const interval = setInterval(() => {
+      if (fetchStatsRef.current) {
+        fetchStatsRef.current();
+      }
+    }, refreshInterval);
     return () => clearInterval(interval);
-  }, [autoRefresh, refreshInterval]);
+  }, [autoRefresh, refreshInterval]); // Utiliser la ref pour éviter les boucles
 
   return {
     stats,

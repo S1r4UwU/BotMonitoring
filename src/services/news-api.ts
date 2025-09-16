@@ -34,10 +34,10 @@ class NewsAPIService {
 
     const res = await fetch(`${this.baseURL}/everything?${params.toString()}`);
     if (!res.ok) return [];
-    const data = await res.json();
+    const data: { status?: string; articles?: Array<{ url?: string; title?: string; description?: string; author?: string; source?: { name?: string }; publishedAt?: string }> } = await res.json();
     if (data.status !== 'ok') return [];
     const nowIso = new Date().toISOString();
-    return (data.articles || []).map((article: any) => {
+    return (data.articles || []).map((article) => {
       const external = `news_${(article.url || '').replace(/[^a-zA-Z0-9]/g, '_')}`;
       return {
         id: external,
@@ -47,7 +47,7 @@ class NewsAPIService {
         content: `${article.title} ${article.description || ''}`.slice(0, 2000),
         author_name: article.author || article.source?.name,
         url: article.url,
-        published_at: new Date(article.publishedAt).toISOString(),
+        published_at: article.publishedAt ? new Date(article.publishedAt).toISOString() : nowIso,
         discovered_at: nowIso,
         urgency_score: 5,
         keywords_matched: [keyword],

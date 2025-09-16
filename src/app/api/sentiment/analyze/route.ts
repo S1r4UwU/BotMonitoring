@@ -45,7 +45,6 @@ export async function POST(request: NextRequest) {
     
     // En cas d'erreur IA, retourner un fallback lexicon
     try {
-      const { text } = await request.json();
       const fallbackResult = {
         score: 0,
         confidence: 0.1,

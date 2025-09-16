@@ -22,19 +22,19 @@ class TelegramAPIService {
     const url = `${this.baseURL}/getUpdates?timeout=0&allowed_updates=%5B%22channel_post%22,%22message%22%5D${this.lastUpdateId ? `&offset=${this.lastUpdateId + 1}` : ''}`;
     const res = await fetch(url, { cache: 'no-store' });
     if (!res.ok) return [];
-    const data = await res.json();
+    const data: { result?: Array<{ update_id?: number; channel_post?: { [key: string]: unknown }; message?: { [key: string]: unknown } }> } = await res.json();
     const results: Mention[] = [];
     const nowIso = new Date().toISOString();
-    const updates: any[] = data.result || [];
+    const updates = data.result || [];
     for (const upd of updates) {
-      this.lastUpdateId = Math.max(this.lastUpdateId, upd.update_id || 0);
-      const msg = upd.channel_post || upd.message;
+      this.lastUpdateId = Math.max(this.lastUpdateId, upd.update_id ?? 0);
+      const msg = (upd.channel_post as { [key: string]: unknown }) || (upd.message as { [key: string]: unknown });
       if (!msg) continue;
-      const text: string = msg.text || msg.caption || '';
+      const text: string = (msg.text as string) || (msg.caption as string) || '';
       const matched = keywords.filter(k => text.toLowerCase().includes(k.toLowerCase()));
       if (matched.length === 0) continue;
-      const chat = msg.chat || {};
-      const messageId = msg.message_id;
+      const chat = (msg.chat as { [key: string]: unknown }) || {};
+      const messageId = msg.message_id as number;
       const url = chat.username ? `https://t.me/${chat.username}/${messageId}` : undefined;
       results.push({
         id: `telegram_${chat.id}_${messageId}`,
@@ -42,9 +42,9 @@ class TelegramAPIService {
         platform: 'telegram',
         external_id: `${chat.id}_${messageId}`,
         content: text.slice(0, 2000),
-        author_name: chat.username || chat.title || String(chat.id),
+        author_name: (chat.username as string) || (chat.title as string) || String(chat.id),
         url,
-        published_at: new Date((msg.date || Math.floor(Date.now() / 1000)) * 1000).toISOString(),
+        published_at: new Date(((msg.date as number) || Math.floor(Date.now() / 1000)) * 1000).toISOString(),
         discovered_at: nowIso,
         urgency_score: 5,
         keywords_matched: matched,

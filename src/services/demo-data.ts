@@ -199,16 +199,17 @@ export const isDemoMode = (): boolean => {
 
 // Service pour mélanger les données réelles et de démo
 export class DemoDataService {
-  static async getMentions(filters?: any, page = 1, limit = 20) {
+  static async getMentions(
+    filters?: { platform?: Mention['platform']; status?: Mention['status'] },
+    page = 1,
+    limit = 20
+  ) {
     if (!isDemoMode()) {
-      // En production, utiliser les vraies données Supabase
-      return { data: [], count: 0 };
+      return { data: [], count: 0 } as const;
     }
 
-    // En mode démo, retourner les données de test
     let filteredMentions = [...demoMentions];
 
-    // Appliquer les filtres basiques
     if (filters?.platform) {
       filteredMentions = filteredMentions.filter(m => m.platform === filters.platform);
     }
@@ -217,19 +218,17 @@ export class DemoDataService {
       filteredMentions = filteredMentions.filter(m => m.status === filters.status);
     }
 
-    // Pagination
     const offset = (page - 1) * limit;
     const paginatedMentions = filteredMentions.slice(offset, offset + limit);
 
     return {
       data: paginatedMentions,
       count: filteredMentions.length
-    };
+    } as const;
   }
 
   static async getMetrics() {
     if (!isDemoMode()) {
-      // En production, calculer les vraies métriques
       return null;
     }
 
@@ -238,7 +237,7 @@ export class DemoDataService {
 
   static async getCases() {
     if (!isDemoMode()) {
-      return [];
+      return [] as const;
     }
 
     return demoCases;

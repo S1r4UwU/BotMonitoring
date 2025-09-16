@@ -80,8 +80,8 @@ class SentimentAnalysisService {
       try {
         const aiResult = await this.analyzeSentimentAI(text);
         return aiResult;
-      } catch (error) {
-        console.warn('IA sentiment analysis failed, fallback to lexicon:', error);
+      } catch {
+        console.warn('IA sentiment analysis failed, fallback to lexicon');
         return lexiconResult;
       }
     }
@@ -178,9 +178,9 @@ Texte à analyser:
         cost: estimatedCost
       };
 
-    } catch (error) {
-      console.error('Erreur Claude API:', error);
-      throw error;
+    } catch {
+      console.error('Erreur Claude API');
+      throw new Error('Erreur Claude API');
     }
   }
 
@@ -282,7 +282,7 @@ Texte à analyser:
         try {
           const aiResult = await this.analyzeSentimentAI(text);
           results.push(aiResult);
-        } catch (error) {
+        } catch {
           results.push(lexiconResult); // fallback
         }
       } else {
@@ -323,7 +323,7 @@ Texte à analyser:
   /**
    * Test de fonctionnement du service
    */
-  async testService(): Promise<{ lexicon: any; ai?: any; budget: any }> {
+  async testService(): Promise<{ lexicon: Array<{ score: number; confidence: number; method: string; reasoning?: string; cost?: number }>; ai?: Record<string, unknown>; budget: ReturnType<SentimentAnalysisService['getUsageStats']> }> {
     const testTexts = [
       "J'adore ce produit, il est parfait !",
       "C'est terrible, je suis très déçu",
@@ -338,8 +338,8 @@ Texte à analyser:
     if (this.canUseAI() && this.claudeApiKey) {
       try {
         aiResult = await this.analyzeSentimentAI(testTexts[1]); // texte négatif
-      } catch (error) {
-        aiResult = { error: error instanceof Error ? error.message : 'Erreur IA' };
+      } catch {
+        aiResult = { error: 'Erreur IA' };
       }
     }
 

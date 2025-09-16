@@ -30,8 +30,9 @@ export async function GET(req: Request) {
     });
 
     const searchData = await searchResponse.json();
-    const posts = searchData?.data?.children || [];
-    const parsed = posts.map((c: any) => ({
+    type RedditChild = { data: { id: string; title: string; subreddit: string; author: string; score: number; num_comments: number; url: string; selftext?: string } };
+    const posts: RedditChild[] = (searchData?.data?.children || []) as RedditChild[];
+    const parsed = posts.map((c) => ({
       id: c.data.id,
       title: c.data.title,
       subreddit: c.data.subreddit,
@@ -55,8 +56,9 @@ export async function GET(req: Request) {
         childrenCount: posts.length
       }
     });
-  } catch (error: any) {
-    return NextResponse.json({ success: false, error: error?.message || 'unknown', query }, { status: 500 });
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : 'unknown';
+    return NextResponse.json({ success: false, error: message, query }, { status: 500 });
   }
 }
 

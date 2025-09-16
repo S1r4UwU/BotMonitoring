@@ -17,12 +17,12 @@ export abstract class SocialMediaAPI {
   abstract key: string;
   abstract async search(keywords: string[], filters?: SearchFilters): Promise<Mention[]>;
   abstract async authenticate(): Promise<boolean>;
-  abstract getRateLimit(): any;
+  abstract getRateLimit(): unknown;
 }
 
 class FacebookAdapter extends SocialMediaAPI {
   key = 'facebook';
-  async search(keywords: string[], _filters?: SearchFilters): Promise<Mention[]> {
+  async search(keywords: string[]): Promise<Mention[]> {
     return facebookAPI.searchFacebookPosts(keywords, 25);
   }
   async authenticate(): Promise<boolean> { return true; }
@@ -31,7 +31,7 @@ class FacebookAdapter extends SocialMediaAPI {
 
 class RedditAdapter extends SocialMediaAPI {
   key = 'reddit';
-  async search(keywords: string[], _filters?: SearchFilters): Promise<Mention[]> {
+  async search(keywords: string[]): Promise<Mention[]> {
     return redditAPI.searchPosts(keywords, [], 25);
   }
   async authenticate(): Promise<boolean> { return true; }
@@ -40,7 +40,7 @@ class RedditAdapter extends SocialMediaAPI {
 
 class YouTubeAdapter extends SocialMediaAPI {
   key = 'youtube';
-  async search(keywords: string[], _filters?: SearchFilters): Promise<Mention[]> {
+  async search(keywords: string[]): Promise<Mention[]> {
     return youtubeAPI.search(keywords, 25);
   }
   async authenticate(): Promise<boolean> { return true; }
@@ -49,7 +49,7 @@ class YouTubeAdapter extends SocialMediaAPI {
 
 class HackerNewsAdapter extends SocialMediaAPI {
   key = 'hackernews';
-  async search(keywords: string[], _filters?: SearchFilters): Promise<Mention[]> {
+  async search(keywords: string[]): Promise<Mention[]> {
     return hackerNewsAPI.search(keywords, 50);
   }
   async authenticate(): Promise<boolean> { return true; }
@@ -67,7 +67,7 @@ class NewsAdapter extends SocialMediaAPI {
 
 class MastodonAdapter extends SocialMediaAPI {
   key = 'mastodon';
-  async search(keywords: string[], _filters?: SearchFilters): Promise<Mention[]> {
+  async search(keywords: string[]): Promise<Mention[]> {
     return mastodonAPI.search(keywords, 40);
   }
   async authenticate(): Promise<boolean> { return true; }
@@ -76,7 +76,7 @@ class MastodonAdapter extends SocialMediaAPI {
 
 class TelegramAdapter extends SocialMediaAPI {
   key = 'telegram';
-  async search(keywords: string[], _filters?: SearchFilters): Promise<Mention[]> {
+  async search(keywords: string[]): Promise<Mention[]> {
     return telegramAPI.search(keywords, 100);
   }
   async authenticate(): Promise<boolean> { return true; }
@@ -85,7 +85,7 @@ class TelegramAdapter extends SocialMediaAPI {
 
 class DiscordAdapter extends SocialMediaAPI {
   key = 'discord';
-  async search(keywords: string[], _filters?: SearchFilters): Promise<Mention[]> {
+  async search(keywords: string[]): Promise<Mention[]> {
     return discordAPI.search(keywords);
   }
   async authenticate(): Promise<boolean> { return true; }

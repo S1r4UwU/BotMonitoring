@@ -1,5 +1,17 @@
 import { Mention } from '@/models/types';
 
+interface HackerNewsHit {
+  objectID: string;
+  title?: string;
+  story_text?: string | null;
+  author: string;
+  url?: string | null;
+  created_at: string;
+  points?: number;
+  num_comments?: number;
+  comment_text?: string | null;
+}
+
 class HackerNewsAPIService {
   private baseURL = 'https://hn.algolia.com/api/v1';
 
@@ -19,9 +31,9 @@ class HackerNewsAPIService {
     const url = `${this.baseURL}/search?query=${encodeURIComponent(keyword)}&tags=story&hitsPerPage=${hits}`;
     const res = await fetch(url);
     if (!res.ok) return [];
-    const data = await res.json();
+    const data = await res.json() as { hits?: HackerNewsHit[] };
     const nowIso = new Date().toISOString();
-    return (data.hits || []).map((item: any) => ({
+    return (data.hits || []).map((item: HackerNewsHit) => ({
       id: `hn_story_${item.objectID}`,
       case_id: '',
       platform: 'hackernews',
@@ -46,9 +58,9 @@ class HackerNewsAPIService {
     const url = `${this.baseURL}/search?query=${encodeURIComponent(keyword)}&tags=comment&hitsPerPage=${hits}`;
     const res = await fetch(url);
     if (!res.ok) return [];
-    const data = await res.json();
+    const data = await res.json() as { hits?: HackerNewsHit[] };
     const nowIso = new Date().toISOString();
-    return (data.hits || []).map((item: any) => ({
+    return (data.hits || []).map((item: HackerNewsHit) => ({
       id: `hn_comment_${item.objectID}`,
       case_id: '',
       platform: 'hackernews',

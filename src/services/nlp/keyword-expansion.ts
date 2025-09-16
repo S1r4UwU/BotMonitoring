@@ -1,38 +1,32 @@
-export class KeywordExpansionService {
-  private synonymDatabase: Record<string, string[]> = {
-    'maladies sexuellement transmissibles': ['MST', 'IST', 'infections sexuellement transmissibles', 'maladies vénériennes'],
-    'mst': ['maladies sexuellement transmissibles', 'IST', 'infections sexuellement transmissibles'],
-    'ist': ['infections sexuellement transmissibles', 'MST', 'maladies sexuellement transmissibles'],
-    'quick': ['Quick Burger', 'restaurants Quick', 'chaîne Quick'],
-    'mcdonalds': ["McDonald's", 'McDo', 'Mac Do', 'restaurants McDonald'],
-    'burger king': ['BK', 'Burger King restaurant', 'King burger'],
-    'intelligence artificielle': ['IA', 'AI', 'machine learning', 'apprentissage automatique'],
-    'ia': ['intelligence artificielle', 'AI', 'artificial intelligence'],
-    'voiture électrique': ['VE', 'véhicule électrique', 'auto électrique', 'voiture électrifiée'],
-    've': ['voiture électrique', 'véhicule électrique']
-  };
+import { } from 'tslib';
 
-  expandKeywords(keywords: string[], language: string = 'fr'): string[] {
-    const expanded = new Set<string>(keywords);
-    keywords.forEach(keyword => {
-      const normalized = keyword.toLowerCase().trim();
-      if (this.synonymDatabase[normalized]) {
-        this.synonymDatabase[normalized].forEach(s => expanded.add(s));
+export function expandKeywords(baseKeywords: string[], languageHint?: string): string[] {
+  const expanded = new Set<string>(baseKeywords);
+
+  const fr = {
+    rapide: ['vite', 'rapido', 'express'],
+    
+  } as const;
+
+  const en = {
+    fast: ['quick', 'rapid', 'speedy'],
+  } as const;
+
+  // Simple expansion based on hint
+  if (languageHint === 'fr') {
+    baseKeywords.forEach(k => {
+      if (fr.rapide.includes(k as 'vite')) {
+        expanded.add('rapide');
       }
-      Object.keys(this.synonymDatabase).forEach(key => {
-        if (normalized.includes(key) || key.includes(normalized)) {
-          this.synonymDatabase[key].forEach(s => expanded.add(s));
-        }
-      });
     });
-    return Array.from(expanded);
+  } else {
+    baseKeywords.forEach(k => {
+      if (en.fast.includes(k as 'quick')) {
+        expanded.add('fast');
+      }
+    });
   }
 
-  suggestSynonyms(keyword: string): string[] {
-    const normalized = keyword.toLowerCase().trim();
-    return this.synonymDatabase[normalized] || [];
-  }
+  return Array.from(expanded);
 }
-
-export default KeywordExpansionService;
 

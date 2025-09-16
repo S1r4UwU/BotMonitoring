@@ -6,10 +6,10 @@ import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { 
   DollarSign,
-  Zap,
   TrendingUp,
   AlertTriangle,
-  CheckCircle
+  CheckCircle,
+  XCircle
 } from 'lucide-react';
 
 interface BudgetStats {
@@ -44,8 +44,8 @@ export function BudgetMonitor() {
   useEffect(() => {
     fetchBudgetStats();
     
-    // Refresh toutes les 5 minutes
-    const interval = setInterval(fetchBudgetStats, 5 * 60 * 1000);
+    // Refresh toutes les 10 minutes
+    const interval = setInterval(fetchBudgetStats, 10 * 60 * 1000);
     return () => clearInterval(interval);
   }, []);
 
@@ -164,7 +164,7 @@ export function BudgetMonitor() {
               ) : (
                 <strong>Attention au budget IA</strong>
               )}
-              {' '}L'analyse basique (lexique) reste disponible.
+              {' '}L&apos;analyse basique (lexique) reste disponible.
             </AlertDescription>
           </Alert>
         )}
@@ -173,7 +173,7 @@ export function BudgetMonitor() {
           <Alert variant="destructive">
             <XCircle className="h-4 w-4" />
             <AlertDescription className="text-sm">
-              <strong>Budget IA épuisé</strong> - Seule l'analyse lexique est disponible jusqu'au reset mensuel.
+              <strong>Budget IA épuisé</strong> - Seule l&apos;analyse lexique est disponible jusqu&apos;au reset mensuel.
             </AlertDescription>
           </Alert>
         )}

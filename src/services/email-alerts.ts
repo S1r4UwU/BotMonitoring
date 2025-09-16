@@ -4,14 +4,8 @@
  */
 
 import { Resend } from 'resend';
-import { Alert, Profile } from '@/models/types';
+import { Alert } from '@/models/types';
 import { createAdminClient } from '@/lib/supabase';
-
-interface EmailTemplate {
-  subject: string;
-  html: string;
-  text: string;
-}
 
 interface EmailAlert {
   to: string[];

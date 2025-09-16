@@ -15,7 +15,7 @@ export async function POST() {
       keywords: JSON.stringify(['Emmanuel Macron', 'Président', 'Élysée', 'Macron']),
       platforms: JSON.stringify(['reddit', 'youtube', 'newsapi']),
       status: 'active'
-    } as any;
+    } as const;
 
     const { data: createdCase, error: caseError } = await supabase
       .from('cases')
@@ -55,7 +55,7 @@ export async function POST() {
       },
       scan_result: scanResult,
       mentions_found: mentions?.length || 0,
-      sample_mentions: (mentions || []).slice(0, 3).map((m: any) => ({
+      sample_mentions: (mentions || []).slice(0, 3).map((m: { platform?: string; content?: string; author_name?: string; sentiment_score?: number; url?: string }) => ({
         platform: m.platform,
         content: (m.content || '').substring(0, 100) + '...',
         author: m.author_name,
@@ -65,11 +65,11 @@ export async function POST() {
       message: `Cas Macron créé et scanné avec succès ! ${mentions?.length || 0} mentions trouvées.`
     });
 
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('❌ Erreur test cas Macron:', error);
     return NextResponse.json({
       success: false,
-      error: error?.message,
+      error: error instanceof Error ? error.message : 'unknown',
       message: 'Erreur lors du test du cas Macron'
     }, { status: 500 });
   }

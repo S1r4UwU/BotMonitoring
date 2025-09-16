@@ -119,3 +119,18 @@
     @apply bg-background text-foreground;
   }
 }
+
+@layer components {
+  .responsive-grid {
+    @apply grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4;
+  }
+  .responsive-card {
+    @apply p-4 sm:p-6 rounded-lg shadow-sm border;
+  }
+  .responsive-text {
+    @apply text-sm sm:text-base;
+  }
+  .mobile-nav {
+    @apply fixed bottom-0 left-0 right-0 bg-background border-t p-4 sm:hidden;
+  }
+}

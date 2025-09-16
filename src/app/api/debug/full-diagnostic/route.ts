@@ -1,8 +1,23 @@
 import { NextResponse } from 'next/server';
 import { createAdminClient } from '@/lib/supabase';
 
+interface Diagnostics {
+  timestamp: string;
+  environment: {
+    demo_mode?: string;
+    node_env?: string;
+    app_url?: string;
+  };
+  database: {
+    supabase_configured: boolean;
+    supabase_url: boolean;
+    connection_test?: string;
+  };
+  apis: Record<string, boolean>;
+}
+
 export async function GET() {
-  const diagnostics: any = {
+  const diagnostics: Diagnostics = {
     timestamp: new Date().toISOString(),
     environment: {
       demo_mode: process.env.NEXT_PUBLIC_DEMO_MODE,
@@ -30,8 +45,9 @@ export async function GET() {
     const supabase = createAdminClient();
     const { count, error } = await supabase.from('cases').select('*', { count: 'exact', head: true });
     diagnostics.database.connection_test = error ? `Error: ${error.message}` : `Success: ${count || 0} cases found`;
-  } catch (e: any) {
-    diagnostics.database.connection_test = `Exception: ${e?.message || 'unknown'}`;
+  } catch (e: unknown) {
+    const message = e instanceof Error ? e.message : 'unknown';
+    diagnostics.database.connection_test = `Exception: ${message}`;
   }
 
   return NextResponse.json(diagnostics);

@@ -2,7 +2,6 @@ import { Suspense } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { DashboardContent } from '@/components/dashboard/dashboard-content';
-import { Loader2, Settings, Plus } from 'lucide-react';
 
 export default function DashboardPage() {
   return (
@@ -11,7 +10,7 @@ export default function DashboardPage() {
       <div>
         <h1 className="text-2xl font-bold text-gray-900">Dashboard</h1>
         <p className="text-gray-600">
-          Vue d'ensemble de vos activités de monitoring
+          Vue d&apos;ensemble de vos activités de monitoring
         </p>
       </div>
 

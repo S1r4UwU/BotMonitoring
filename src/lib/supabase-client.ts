@@ -8,7 +8,7 @@ import { Database } from './database.types';
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-const isDemoMode = process.env.NEXT_PUBLIC_DEMO_MODE === 'true';
+// const isDemoMode = process.env.NEXT_PUBLIC_DEMO_MODE === 'true';
 
 /**
  * Client Supabase pour les composants client ('use client')
@@ -17,7 +17,7 @@ export const createClientComponentClient = () => {
   if (!supabaseUrl || !supabaseAnonKey) {
     console.warn('[WARN] Supabase non configuré - création client factice');
     // Créer un client factice qui ne fait rien mais ne plante pas
-    return {
+    const fakeClient = {
       auth: {
         getUser: () => Promise.resolve({ data: { user: null }, error: null }),
         signInWithPassword: () => Promise.resolve({ data: { user: null }, error: { message: 'Supabase non configuré' } }),
@@ -25,7 +25,7 @@ export const createClientComponentClient = () => {
         signUp: () => Promise.resolve({ data: { user: null }, error: { message: 'Supabase non configuré' } }),
         signOut: () => Promise.resolve({ error: null })
       },
-      from: (table: string) => ({
+      from: () => ({
         select: () => ({ data: [], count: 0, error: null }),
         insert: () => ({ data: null, error: { message: 'Supabase non configuré' } }),
         update: () => ({ data: null, error: { message: 'Supabase non configuré' } }),
@@ -35,7 +35,8 @@ export const createClientComponentClient = () => {
         order: () => ({ data: [], error: null }),
         range: () => ({ data: [], error: null, count: 0 })
       })
-    } as any;
+    } as const;
+    return fakeClient as unknown as ReturnType<typeof createClient<Database>>;
   }
   
   return createClient<Database>(supabaseUrl, supabaseAnonKey, {

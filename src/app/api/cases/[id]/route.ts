@@ -66,7 +66,14 @@ export async function PUT(
     const supabase = createAdminClient();
     
     // Préparer les données à mettre à jour
-    const updateData: any = {};
+    const updateData: Partial<{
+      name: string;
+      description: string | null;
+      keywords: string;
+      platforms: string;
+      status: string;
+      updated_at: string;
+    }> = {};
     
     if (body.name) updateData.name = body.name;
     if (body.description !== undefined) updateData.description = body.description;

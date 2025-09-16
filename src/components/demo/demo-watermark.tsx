@@ -16,7 +16,7 @@ export function DemoWatermark() {
         <AlertDescription className="text-orange-800 flex items-center justify-between">
           <div className="flex items-center">
             <Play className="h-4 w-4 mr-2" />
-            <strong>Mode démo actif</strong> - Les données sont simulées et aucune modification réelle n'est sauvegardée
+            <strong>Mode démo actif</strong> - Les données sont simulées et aucune modification réelle n&apos;est sauvegardée
           </div>
           <div className="text-xs opacity-75">
             Configurez Supabase pour utiliser de vraies données

@@ -8,7 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Textarea } from '@/components/ui/textarea';
-import { Plus, Loader2, CheckCircle, X } from 'lucide-react';
+import { Plus, Loader2, CheckCircle } from 'lucide-react';
 
 interface Platform {
   id: 'facebook' | 'instagram' | 'reddit' | 'youtube' | 'hackernews' | 'newsapi' | 'mastodon' | 'telegram' | 'discord';
@@ -45,7 +45,7 @@ const platforms: Platform[] = [
 ];
 
 interface CreateCaseFormProps {
-  onSuccess?: (caseData: any) => void;
+  onSuccess?: (caseData: { id: string; name: string }) => void;
   onCancel?: () => void;
 }
 
@@ -117,11 +117,11 @@ export function CreateCaseForm({ onSuccess, onCancel }: CreateCaseFormProps) {
           if (etIndex >= 0) {
             groups[etIndex].keywords = Array.from(new Set([...(groups[etIndex].keywords || []), ...baseKeywords]));
           } else if (baseKeywords.length > 0) {
-            groups.unshift({ operator: 'ET', keywords: baseKeywords } as any);
+            groups.unshift({ operator: 'ET', keywords: baseKeywords });
           }
-          const previewQuery = engine.buildSearchQuery(groups as any);
+          const previewQuery = engine.buildSearchQuery(groups as Array<{ operator: 'ET' | 'OU' | 'NON'; keywords: string[] }>);
           keywords = [previewQuery];
-        } catch (e) {
+        } catch {
           console.warn('AdvancedSearchEngine indisponible, fallback mots-clés simples');
         }
       }
@@ -184,15 +184,7 @@ export function CreateCaseForm({ onSuccess, onCancel }: CreateCaseFormProps) {
     }));
   };
 
-  const handleKeywordAdd = (keyword: string) => {
-    if (!keyword.trim()) return;
-    
-    const currentKeywords = formData.keywords ? formData.keywords.split(',').map(k => k.trim()) : [];
-    if (!currentKeywords.includes(keyword.trim())) {
-      const newKeywords = [...currentKeywords, keyword.trim()].join(', ');
-      setFormData(prev => ({ ...prev, keywords: newKeywords }));
-    }
-  };
+  // suppression de handleKeywordAdd (non utilisé)
 
   return (
     <Card>
@@ -269,7 +261,7 @@ export function CreateCaseForm({ onSuccess, onCancel }: CreateCaseFormProps) {
                             const parts = e.target.value.split(',').map(s => s.trim()).filter(Boolean);
                             setAdvancedKeywordGroups(prev => {
                               const clone = [...prev];
-                              clone[idx] = { operator: op as any, keywords: parts };
+                              clone[idx] = { operator: op as 'ET' | 'OU' | 'NON', keywords: parts };
                               return clone;
                             });
                           }}
@@ -285,10 +277,10 @@ export function CreateCaseForm({ onSuccess, onCancel }: CreateCaseFormProps) {
                           .split(',')
                           .map(s => s.trim())
                           .filter(Boolean)
-                          .map(k => `"${k}"`).join(' ');
-                        const et = (advancedKeywordGroups[0]?.keywords || []).filter(Boolean).map(k => `"${k}"`).join(' ');
-                        const ou = (advancedKeywordGroups[1]?.keywords || []).filter(Boolean).map(k => `"${k}"`).join(' OR ');
-                        const non = (advancedKeywordGroups[2]?.keywords || []).filter(Boolean).map(k => `-"${k}"`).join(' ');
+                          .map(k => `&quot;${k}&quot;`).join(' ');
+                        const et = (advancedKeywordGroups[0]?.keywords || []).filter(Boolean).map(k => `&quot;${k}&quot;`).join(' ');
+                        const ou = (advancedKeywordGroups[1]?.keywords || []).filter(Boolean).map(k => `&quot;${k}&quot;`).join(' OR ');
+                        const non = (advancedKeywordGroups[2]?.keywords || []).filter(Boolean).map(k => `-&quot;${k}&quot;`).join(' ');
                         return [base, et, ou ? `(${ou})` : '', non].filter(Boolean).join(' ').trim() || '—';
                       })()}
                     </span>
@@ -316,7 +308,7 @@ export function CreateCaseForm({ onSuccess, onCancel }: CreateCaseFormProps) {
             )}
             {!useAdvancedSearch && (
               <p className="text-xs text-gray-500 mt-1">
-                Séparez les mots-clés par des virgules. Ex: "ma-marque, mon-produit, service-client"
+                Séparez les mots-clés par des virgules. Ex: &quot;ma-marque, mon-produit, service-client&quot;
               </p>
             )}
           </div>

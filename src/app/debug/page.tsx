@@ -23,7 +23,7 @@ interface DebugInfo {
     tablesCount: Record<string, number>;
     error?: string;
   };
-  apis: Record<string, any>;
+  apis: Record<string, unknown>;
   system: {
     timestamp: string;
     version: string;
@@ -65,7 +65,7 @@ export default function DebugPage() {
       const debugData: DebugInfo = {
         environment,
         database,
-        apis,
+        apis: apis as Record<string, unknown>,
         system: {
           timestamp: new Date().toISOString(),
           version: '1.0.0'
@@ -150,7 +150,7 @@ export default function DebugPage() {
             <CardHeader>
               <CardTitle className="flex items-center">
                 <Key className="h-5 w-5 mr-2" />
-                Variables d'Environnement
+                Variables d&apos;Environnement
               </CardTitle>
             </CardHeader>
             <CardContent>
@@ -225,13 +225,13 @@ export default function DebugPage() {
                 </Alert>
               ) : (
                 <div className="space-y-3">
-                  {Object.entries(debugInfo.apis).filter(([key]) => ['facebook', 'reddit', 'email'].includes(key)).map(([api, status]: [string, any]) => (
+                  {Object.entries(debugInfo.apis).filter(([key]) => ['facebook', 'reddit', 'email'].includes(key)).map(([api, status]) => (
                     <div key={api} className="flex items-center justify-between">
                       <div className="flex items-center space-x-2">
                         <span className="capitalize font-medium">{api}</span>
                       </div>
-                      <Badge variant={status?.success ? 'default' : 'destructive'}>
-                        {status?.success ? 'OK' : 'Erreur'}
+                      <Badge variant={(status as { success?: boolean })?.success ? 'default' : 'destructive'}>
+                        {(status as { success?: boolean })?.success ? 'OK' : 'Erreur'}
                       </Badge>
                     </div>
                   ))}

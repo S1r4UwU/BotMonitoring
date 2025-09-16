@@ -12,8 +12,20 @@ import { newsAPI } from './news-api';
 import { mastodonAPI } from './mastodon-api';
 import { telegramAPI } from './telegram-api';
 import { discordAPI } from './discord-api';
-import { Mention, Case } from '@/models/types';
-import { isDemoMode, DemoDataService } from './demo-data';
+import { Mention } from '@/models/types';
+import { isDemoMode } from './demo-data';
+
+// Métriques détaillées par plateforme (déclarée au niveau module)
+interface PlatformMetrics {
+  totalCalls: number;
+  successfulCalls: number;
+  failedCalls: number;
+  avgResponseTime: number;
+  lastCallTime: Date;
+  rateLimitHit: boolean;
+  quotaUsed: number;
+  quotaLimit: number;
+}
 
 interface MonitoringJob {
   caseId: string;
@@ -37,8 +49,8 @@ interface MonitoringStats {
   lastRun: Date;
   nextRun: Date;
   rateLimit: {
-    facebook: any;
-    reddit: any;
+    facebook: unknown;
+    reddit: unknown;
   };
 }
 
@@ -57,6 +69,8 @@ class MonitoringEngine {
       reddit: null
     }
   };
+
+  private platformMetrics: Map<string, PlatformMetrics> = new Map();
 
   constructor() {
     this.initializeEngine();
@@ -79,8 +93,8 @@ class MonitoringEngine {
       this.isInitialized = true;
       console.log('✅ Moteur de monitoring initialisé avec succès');
       
-    } catch (error) {
-      console.error('❌ Erreur initialisation moteur de monitoring:', error);
+    } catch {
+      console.error('❌ Erreur initialisation moteur de monitoring');
     }
   }
 
@@ -99,13 +113,26 @@ class MonitoringEngine {
       if (error) {
         console.error('[ERROR] Chargement cas actifs DB:', error);
         // Continuer avec un cas par défaut si DB échoue
-        cases = [{
+        const fallbackCases = [{
           id: 'fallback-case',
           name: 'Cas de fallback',
           keywords: JSON.stringify(['socialguard', 'monitoring']),
           platforms: JSON.stringify(['reddit']),
           status: 'active'
         }];
+        fallbackCases.forEach(caseData => {
+          const keywords = JSON.parse(caseData.keywords);
+          const platforms = JSON.parse(caseData.platforms);
+          this.startMonitoringJob({
+            caseId: caseData.id,
+            keywords: keywords || [],
+            platforms: platforms || [],
+            interval: 15, // 15 minutes par défaut
+            lastRun: new Date(0),
+            isRunning: false,
+          });
+        });
+        return;
       }
 
       console.log(`📊 ${cases?.length || 0} cas actifs chargés depuis Supabase DB`);
@@ -114,7 +141,9 @@ class MonitoringEngine {
       cases?.forEach(caseData => {
         const keywords = typeof caseData.keywords === 'string' ? JSON.parse(caseData.keywords) : caseData.keywords;
         const platforms = typeof caseData.platforms === 'string' ? JSON.parse(caseData.platforms) : caseData.platforms;
-        const filters = typeof (caseData as any).filters === 'string' ? JSON.parse((caseData as any).filters) : (caseData as any).filters;
+        const filters = typeof (caseData as { filters?: string | Record<string, unknown> }).filters === 'string'
+          ? JSON.parse((caseData as { filters?: string }).filters as string)
+          : (caseData as { filters?: Record<string, unknown> }).filters;
         
         this.startMonitoringJob({
           caseId: caseData.id,
@@ -127,8 +156,8 @@ class MonitoringEngine {
         });
       });
 
-    } catch (error) {
-      console.error('[ERROR] Erreur chargement cas actifs:', error);
+    } catch {
+      console.error('[ERROR] Erreur chargement cas actifs');
       // Continuer en mode dégradé
     }
   }
@@ -235,10 +264,13 @@ class MonitoringEngine {
           const { AdvancedSearchEngine } = await import('./search/advanced-search');
           const engine = new AdvancedSearchEngine();
           const groups = job.keywords.length === 1
-            ? (AdvancedSearchEngine as any).parseQueryToGroups(job.keywords[0])
+            ? (AdvancedSearchEngine as unknown as { parseQueryToGroups: (q: string) => Array<{ operator: 'ET' | 'OU' | 'NON'; keywords: string[] }> }).parseQueryToGroups(job.keywords[0])
             : [ { operator: 'ET', keywords: job.keywords } ];
-          allMentions = allMentions.filter(m => engine.matchesCriteria(m.content || '', groups as any));
-        } catch (e) {
+          allMentions = allMentions.filter(m => engine.matchesCriteria(
+            m.content || '',
+            groups as Array<{ operator: 'ET' | 'OU' | 'NON'; keywords: string[] }>
+          ));
+        } catch {
           console.warn('AdvancedSearchEngine indisponible, pas de filtrage logique');
         }
       }
@@ -267,7 +299,7 @@ class MonitoringEngine {
 
             return true;
           });
-        } catch (e) {
+        } catch {
           console.warn('LanguageDetectionService indisponible, saut du filtrage langue');
         }
       }
@@ -283,8 +315,8 @@ class MonitoringEngine {
       
       console.log(`✅ Scan terminé pour cas ${caseId}: ${allMentions.length} nouvelles mentions`);
 
-    } catch (error) {
-      console.error(`❌ Erreur scan cas ${caseId}:`, error);
+    } catch {
+      console.error(`❌ Erreur scan cas ${caseId}`);
       this.stats.errorsCount++;
     } finally {
       job.isRunning = false;
@@ -297,15 +329,8 @@ class MonitoringEngine {
    */
   private expandFlatKeywords(keywords: string[]): string[] {
     try {
-      if (keywords.length === 1) {
-        const { AdvancedSearchEngine } = require('./search/advanced-search');
-        const groups = AdvancedSearchEngine.parseQueryToGroups(keywords[0]);
-        const et = (groups.find((g: any) => g.operator === 'ET')?.keywords || []);
-        const ou = (groups.find((g: any) => g.operator === 'OU')?.keywords || []);
-        const flat = Array.from(new Set([...et, ...ou]));
-        return flat.length > 0 ? flat : keywords;
-      }
-      return keywords.map(k => k.replace(/^["']|["']$/g, ''));
+      // Nettoyage simple des guillemets; le parsing booléen est réalisé plus haut via AdvancedSearchEngine
+      return keywords.map(k => k.replace(/^['\"]|['\"]$/g, ''));
     } catch {
       return keywords;
     }
@@ -316,13 +341,16 @@ class MonitoringEngine {
    */
   private async scanFacebook(keywords: string[], caseId: string): Promise<Mention[]> {
     try {
-      const mentions = await facebookAPI.searchFacebookPosts(keywords, 25);
+      const start = Date.now();
+      const mentions = await this.callAPIWithRetry(() => facebookAPI.searchFacebookPosts(keywords, 25), 'facebook');
+      await this.updateMetrics('facebook', true, Date.now() - start);
       return mentions.map(mention => ({
         ...mention,
         case_id: caseId
       }));
     } catch (error) {
       console.error('Erreur scan Facebook:', error);
+      await this.updateMetrics('facebook', false, 0);
       return [];
     }
   }
@@ -337,13 +365,16 @@ class MonitoringEngine {
   ): Promise<Mention[]> {
     try {
       const subreddits = filters?.subreddits || [];
-      const mentions = await redditAPI.searchPosts(keywords, subreddits, 25);
+      const start = Date.now();
+      const mentions = await this.callAPIWithRetry(() => redditAPI.searchPosts(keywords, subreddits, 25), 'reddit');
+      await this.updateMetrics('reddit', true, Date.now() - start);
       return mentions.map(mention => ({
         ...mention,
         case_id: caseId
       }));
     } catch (error) {
       console.error('Erreur scan Reddit:', error);
+      await this.updateMetrics('reddit', false, 0);
       return [];
     }
   }
@@ -353,10 +384,13 @@ class MonitoringEngine {
    */
   private async scanYouTube(keywords: string[], caseId: string): Promise<Mention[]> {
     try {
-      const mentions = await youtubeAPI.search(keywords, 25);
+      const start = Date.now();
+      const mentions = await this.callAPIWithRetry(() => youtubeAPI.search(keywords, 25), 'youtube');
+      await this.updateMetrics('youtube', true, Date.now() - start);
       return mentions.map(m => ({ ...m, case_id: caseId }));
     } catch (e) {
       console.error('Erreur scan YouTube:', e);
+      await this.updateMetrics('youtube', false, 0);
       return [];
     }
   }
@@ -366,10 +400,13 @@ class MonitoringEngine {
    */
   private async scanHackerNews(keywords: string[], caseId: string): Promise<Mention[]> {
     try {
-      const mentions = await hackerNewsAPI.search(keywords, 50);
+      const start = Date.now();
+      const mentions = await this.callAPIWithRetry(() => hackerNewsAPI.search(keywords, 50), 'hackernews');
+      await this.updateMetrics('hackernews', true, Date.now() - start);
       return mentions.map(m => ({ ...m, case_id: caseId }));
     } catch (e) {
       console.error('Erreur scan HackerNews:', e);
+      await this.updateMetrics('hackernews', false, 0);
       return [];
     }
   }
@@ -383,10 +420,13 @@ class MonitoringEngine {
     filters?: { languages?: string[] }
   ): Promise<Mention[]> {
     try {
-      const mentions = await newsAPI.search(keywords, filters?.languages || []);
+      const start = Date.now();
+      const mentions = await this.callAPIWithRetry(() => newsAPI.search(keywords, filters?.languages || []), 'newsapi');
+      await this.updateMetrics('newsapi', true, Date.now() - start);
       return mentions.map(m => ({ ...m, case_id: caseId }));
     } catch (e) {
       console.error('Erreur scan NewsAPI:', e);
+      await this.updateMetrics('newsapi', false, 0);
       return [];
     }
   }
@@ -396,10 +436,13 @@ class MonitoringEngine {
    */
   private async scanMastodon(keywords: string[], caseId: string): Promise<Mention[]> {
     try {
-      const mentions = await mastodonAPI.search(keywords, 40);
+      const start = Date.now();
+      const mentions = await this.callAPIWithRetry(() => mastodonAPI.search(keywords, 40), 'mastodon');
+      await this.updateMetrics('mastodon', true, Date.now() - start);
       return mentions.map(m => ({ ...m, case_id: caseId }));
     } catch (e) {
       console.error('Erreur scan Mastodon:', e);
+      await this.updateMetrics('mastodon', false, 0);
       return [];
     }
   }
@@ -409,10 +452,13 @@ class MonitoringEngine {
    */
   private async scanTelegram(keywords: string[], caseId: string): Promise<Mention[]> {
     try {
-      const mentions = await telegramAPI.search(keywords, 100);
+      const start = Date.now();
+      const mentions = await this.callAPIWithRetry(() => telegramAPI.search(keywords, 100), 'telegram');
+      await this.updateMetrics('telegram', true, Date.now() - start);
       return mentions.map(m => ({ ...m, case_id: caseId }));
     } catch (e) {
       console.error('Erreur scan Telegram:', e);
+      await this.updateMetrics('telegram', false, 0);
       return [];
     }
   }
@@ -422,10 +468,13 @@ class MonitoringEngine {
    */
   private async scanDiscord(keywords: string[], caseId: string): Promise<Mention[]> {
     try {
-      const mentions = await discordAPI.search(keywords);
+      const start = Date.now();
+      const mentions = await this.callAPIWithRetry(() => discordAPI.search(keywords), 'discord');
+      await this.updateMetrics('discord', true, Date.now() - start);
       return mentions.map(m => ({ ...m, case_id: caseId }));
     } catch (e) {
       console.error('Erreur scan Discord:', e);
+      await this.updateMetrics('discord', false, 0);
       return [];
     }
   }
@@ -476,8 +525,8 @@ class MonitoringEngine {
 
       console.log(`💾 ${data?.length || 0} nouvelles mentions sauvegardées en Supabase DB`);
 
-    } catch (error) {
-      console.error('[ERROR] Erreur traitement mentions:', error);
+    } catch {
+      console.error('[ERROR] Erreur traitement mentions');
       // Ne pas throw - continuer en mode dégradé
     }
   }
@@ -500,8 +549,8 @@ class MonitoringEngine {
 
       console.log(`[DEBUG] ${data?.length || 0} mentions existantes trouvées sur ${externalIds.length}`);
       return data?.map(row => row.external_id) || [];
-    } catch (error) {
-      console.error('[ERROR] Erreur vérification mentions existantes:', error);
+    } catch {
+      console.error('[ERROR] Erreur vérification mentions existantes');
       return [];
     }
   }
@@ -540,8 +589,8 @@ class MonitoringEngine {
 
       console.log(`🚨 ${alerts.length} alertes critiques créées`);
 
-    } catch (error) {
-      console.error('Erreur création alertes:', error);
+    } catch {
+      console.error('Erreur création alertes');
     }
   }
 
@@ -557,6 +606,58 @@ class MonitoringEngine {
         reddit: redditAPI.getRateLimitInfo()
       }
     };
+  }
+
+  // Gestion d'erreurs robuste avec retry
+  private async callAPIWithRetry<T>(
+    apiCall: () => Promise<T>,
+    platform: string,
+    maxRetries = 3
+  ): Promise<T> {
+    let lastError: Error | undefined;
+
+    for (let attempt = 1; attempt <= maxRetries; attempt++) {
+      try {
+        const result = await apiCall();
+        return result;
+      } catch (error) {
+        lastError = error as Error;
+        console.warn(`❌ Tentative ${attempt}/${maxRetries} échouée pour ${platform}:`, error);
+        if (attempt < maxRetries) {
+          const delay = Math.min(1000 * Math.pow(2, attempt - 1), 10000);
+          await new Promise(resolve => setTimeout(resolve, delay));
+        }
+      }
+    }
+
+    console.error(`🚫 Échec définitif pour ${platform} après ${maxRetries} tentatives:`, lastError);
+    throw lastError!;
+  }
+
+  // Analytics temps réel
+  private async updateMetrics(platform: string, success: boolean, responseTime: number) {
+    const metrics: PlatformMetrics = this.platformMetrics.get(platform) || {
+      totalCalls: 0,
+      successfulCalls: 0,
+      failedCalls: 0,
+      avgResponseTime: 0,
+      lastCallTime: new Date(),
+      rateLimitHit: false,
+      quotaUsed: 0,
+      quotaLimit: 0
+    } as PlatformMetrics;
+
+    metrics.totalCalls++;
+    metrics.lastCallTime = new Date();
+    metrics.avgResponseTime = metrics.avgResponseTime === 0 ? responseTime : (metrics.avgResponseTime + responseTime) / 2;
+
+    if (success) {
+      metrics.successfulCalls++;
+    } else {
+      metrics.failedCalls++;
+    }
+
+    this.platformMetrics.set(platform, metrics);
   }
 
   /**

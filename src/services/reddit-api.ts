@@ -137,7 +137,7 @@ class RedditAPIService {
       await this.authenticate();
 
       const searchQuery = keywords.join(' OR ');
-      let searchURL = '/search.json';
+      const searchURL = '/search.json';
       
       // Recherche dans des subreddits spécifiques ou globale
       const subredditParam = subreddits.length > 0 ? subreddits.join('+') : 'all';
@@ -151,7 +151,7 @@ class RedditAPIService {
         type: 'link,self' // posts et self-posts
       };
 
-      const response = await axios.get<RedditSearchResponse>(`${this.oauthURL}/r/${subredditParam}${searchURL}`, {
+      const { data } = await axios.get<RedditSearchResponse>(`${this.oauthURL}/r/${subredditParam}${searchURL}`, {
         headers: {
           'Authorization': `Bearer ${this.accessToken}`,
           'User-Agent': this.userAgent
@@ -162,7 +162,7 @@ class RedditAPIService {
 
       this.decrementRateLimit();
 
-      const mentions = response.data.data.children.map(post => this.formatRedditMention(post, keywords));
+      const mentions = data.data.children.map(post => this.formatRedditMention(post, keywords));
       
       console.log(`Reddit API: ${mentions.length} mentions trouvées pour [${keywords.join(', ')}]`);
       return mentions;
@@ -211,7 +211,7 @@ class RedditAPIService {
     try {
       await this.authenticate();
 
-      const response = await axios.get<RedditSearchResponse>(`${this.oauthURL}/r/${subreddit}/hot.json`, {
+      const { data } = await axios.get<RedditSearchResponse>(`${this.oauthURL}/r/${subreddit}/hot.json`, {
         headers: {
           'Authorization': `Bearer ${this.accessToken}`,
           'User-Agent': this.userAgent
@@ -222,7 +222,7 @@ class RedditAPIService {
 
       this.decrementRateLimit();
 
-      const mentions = response.data.data.children.map(post => 
+      const mentions = data.data.children.map(post => 
         this.formatRedditMention(post, []) // pas de keywords spécifiques
       );
       
@@ -325,7 +325,7 @@ class RedditAPIService {
       await this.authenticate();
       
       // Test avec une requête simple
-      const response = await axios.get(`${this.oauthURL}/api/v1/me`, {
+      await axios.get(`${this.oauthURL}/api/v1/me`, {
         headers: {
           'Authorization': `Bearer ${this.accessToken}`,
           'User-Agent': this.userAgent

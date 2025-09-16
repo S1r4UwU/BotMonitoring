@@ -2,7 +2,7 @@
  * Helpers pour les appels API et gestion d'erreurs
  */
 
-export interface APIResponse<T = any> {
+export interface APIResponse<T = unknown> {
   success: boolean;
   data?: T;
   error?: string;
@@ -37,7 +37,7 @@ export async function apiCall<T>(
 
     return {
       success: true,
-      data,
+      data: data as T,
       timestamp: new Date().toISOString()
     };
 
@@ -117,8 +117,8 @@ export async function paginatedApiCall<T>(
 /**
  * Validation des réponses API
  */
-export function validateAPIResponse<T>(
-  response: any,
+export function validateAPIResponse<T extends Record<string, unknown>>(
+  response: unknown,
   requiredFields: string[]
 ): response is T {
   if (!response || typeof response !== 'object') {
