@@ -526,7 +526,7 @@ class MonitoringEngine {
           published_at: mention.published_at,
           sentiment_score: mention.sentiment_score,
           urgency_score: mention.urgency_score,
-          keywords_matched: JSON.stringify(mention.keywords_matched),
+          keywords_matched: mention.keywords_matched,
           status: mention.status,
           metadata: JSON.stringify(mention.metadata || {})
         })))
@@ -538,6 +538,14 @@ class MonitoringEngine {
       }
 
       console.log(`💾 ${data?.length || 0} nouvelles mentions sauvegardées en Supabase DB`);
+
+      // Invalider le cache des stats dashboard
+      try {
+        const { cacheService } = await import('@/lib/cache');
+        await cacheService.delete('dashboard:stats');
+      } catch {
+        console.warn('[WARN] Échec invalidation cache dashboard:stats');
+      }
 
     } catch {
       console.error('[ERROR] Erreur traitement mentions');

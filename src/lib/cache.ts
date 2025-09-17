@@ -48,6 +48,11 @@ export class CacheService {
     this.ensure();
     return (await this.redis.get(key)) as T | null;
   }
+
+  async delete(key: string): Promise<void> {
+    this.ensure();
+    await this.redis.del(key);
+  }
 }
 
 export const cacheService = new CacheService();
