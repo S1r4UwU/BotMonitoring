@@ -36,6 +36,8 @@ export function useMentions({
   const [totalCount, setTotalCount] = useState(0);
   const [currentPage, setCurrentPage] = useState(1);
   const fetchMentionsRef = useRef<(page?: number) => Promise<void>>();
+  // Dépendances stables pour les filtres
+  const stableFilters = JSON.stringify({ ...(arguments?.[0]?.filters || {}) });
 
   // Calculer les pages
   const totalPages = Math.ceil(totalCount / pageSize);
@@ -50,7 +52,10 @@ export function useMentions({
       console.log('[DEBUG] useMentions fetchMentions appelé, page:', page);
 
       // Récupérer depuis l'API
-      const response = await fetch(`/api/mentions?page=${page}&limit=${pageSize}`);
+      const baseParams = new URLSearchParams({ page: String(page), limit: String(pageSize) });
+      const filterObj = JSON.parse(stableFilters || '{}');
+      Object.entries(filterObj).forEach(([k, v]) => baseParams.set(k, String(v)));
+      const response = await fetch(`/api/mentions?${baseParams.toString()}`);
       if (response.ok) {
         const result = await response.json();
         
@@ -72,7 +77,7 @@ export function useMentions({
     } finally {
       setLoading(false);
     }
-  }, [pageSize]);
+  }, [pageSize, stableFilters]);
 
   // Mettre à jour la ref quand la fonction change
   useEffect(() => {
@@ -138,7 +143,7 @@ export function useMentions({
   // Effect pour charger les mentions initiales
   useEffect(() => {
     fetchMentions(1);
-  }, [fetchMentions]); // Inclure fetchMentions dans les dépendances
+  }, [stableFilters, pageSize, fetchMentions]);
 
   // Effect pour l'auto-refresh
   useEffect(() => {

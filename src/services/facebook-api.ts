@@ -40,6 +40,25 @@ interface FacebookSearchResponse {
 }
 
 class FacebookAPIService {
+  private async callWithRetry<T>(operation: () => Promise<T>, maxRetries = 3, timeoutMs = 15000): Promise<T> {
+    for (let attempt = 1; attempt <= maxRetries; attempt++) {
+      try {
+        return await Promise.race([
+          operation(),
+          new Promise<never>((_, reject) => setTimeout(() => reject(new Error(`Timeout ${timeoutMs}ms`)), timeoutMs))
+        ]);
+      } catch (error) {
+        if (attempt === maxRetries) {
+          console.error(`[ERROR] FacebookAPIService failed after ${maxRetries} attempts:`, error);
+          throw error;
+        }
+        const delayMs = Math.min(1000 * Math.pow(2, attempt), 10000);
+        console.warn(`[RETRY] Facebook attempt ${attempt}/${maxRetries} failed, retrying in ${delayMs}ms...`);
+        await new Promise(resolve => setTimeout(resolve, delayMs));
+      }
+    }
+    throw new Error('Impossible de joindre Facebook API');
+  }
   private appId: string;
   private appSecret: string;
   private accessToken: string;
@@ -111,7 +130,7 @@ class FacebookAPIService {
       
       // Note: Facebook Graph API Search est limitée aux pages publiques
       // Pour un monitoring complet, il faudrait des accès spéciaux
-      const response = await axios.get<FacebookSearchResponse>(`${this.baseURL}/search`, {
+      const response = await this.callWithRetry(() => axios.get<FacebookSearchResponse>(`${this.baseURL}/search`, {
         params: {
           q: searchQuery,
           type: 'post',
@@ -120,7 +139,7 @@ class FacebookAPIService {
           fields: 'id,message,story,created_time,from{name,id},likes.summary(true),comments.summary(true),shares,permalink_url'
         },
         timeout: 10000
-      });
+      }));
 
       this.decrementRateLimit();
 

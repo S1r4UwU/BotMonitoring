@@ -27,6 +27,25 @@ interface YouTubeCommentThreadItem {
 }
 
 class YouTubeAPIService {
+  private async callWithRetry<T>(operation: () => Promise<T>, maxRetries = 3, timeoutMs = 15000): Promise<T> {
+    for (let attempt = 1; attempt <= maxRetries; attempt++) {
+      try {
+        return await Promise.race([
+          operation(),
+          new Promise<never>((_, reject) => setTimeout(() => reject(new Error(`Timeout ${timeoutMs}ms`)), timeoutMs))
+        ]);
+      } catch (error) {
+        if (attempt === maxRetries) {
+          console.error(`[ERROR] YouTubeAPIService failed after ${maxRetries} attempts:`, error);
+          throw error;
+        }
+        const delayMs = Math.min(1000 * Math.pow(2, attempt), 10000);
+        console.warn(`[RETRY] YouTube attempt ${attempt}/${maxRetries} failed, retrying in ${delayMs}ms...`);
+        await new Promise(resolve => setTimeout(resolve, delayMs));
+      }
+    }
+    throw new Error('Impossible de joindre YouTube API');
+  }
   private apiKey: string;
   private baseURL = 'https://www.googleapis.com/youtube/v3';
   private quotaUsed = 0;
@@ -90,7 +109,7 @@ class YouTubeAPIService {
 
     // Coût typique: search.list ~ 100 unités
     const url = `${this.baseURL}/search?part=snippet&q=${encodeURIComponent(keyword)}&type=video&order=relevance&maxResults=${maxResults}&key=${this.apiKey}`;
-    const res = await fetch(url);
+    const res = await this.callWithRetry(() => fetch(url));
     if (!res.ok) return [];
     const data = await res.json();
     const items: YouTubeSearchItem[] = data.items || [];
@@ -128,7 +147,7 @@ class YouTubeAPIService {
 
     // Coût typique: commentThreads.list ~ 1 unité
     const url = `${this.baseURL}/commentThreads?part=snippet&videoId=${videoId}&maxResults=20&order=relevance&key=${this.apiKey}`;
-    const res = await fetch(url);
+    const res = await this.callWithRetry(() => fetch(url));
     if (!res.ok) return [];
     const data = await res.json();
     const items: YouTubeCommentThreadItem[] = data.items || [];

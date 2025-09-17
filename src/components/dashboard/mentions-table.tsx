@@ -62,10 +62,9 @@ export function MentionsTable({
   });
 
   const getSentimentBadge = (score: number | null) => {
-    if (score === null) return <Badge variant="secondary">N/A</Badge>;
-    
+    if (score === null) return <Badge variant="outline">N/A</Badge>;
     if (score > 1) {
-      return <Badge className="bg-green-100 text-green-800">Positif ({score})</Badge>;
+      return <Badge variant="default" className="bg-green-100 text-green-800">Positif ({score})</Badge>;
     } else if (score < -1) {
       return <Badge variant="destructive">Négatif ({score})</Badge>;
     } else {
@@ -75,14 +74,14 @@ export function MentionsTable({
 
   const getStatusBadge = (status: Mention['status']) => {
     const statusConfig = {
-      new: { variant: 'default', label: 'Nouveau' },
-      processed: { variant: 'secondary', label: 'Traité' },
-      responded: { variant: 'outline', label: 'Répondu' },
-      ignored: { variant: 'secondary', label: 'Ignoré' },
-    } as const;
+      new: { variant: 'default' as const, label: 'Nouveau' },
+      processed: { variant: 'secondary' as const, label: 'Traité' },
+      responded: { variant: 'outline' as const, label: 'Répondu' },
+      ignored: { variant: 'destructive' as const, label: 'Ignoré' },
+    };
 
     const config = statusConfig[status];
-    return <Badge variant={config.variant as 'default' | 'secondary' | 'outline'}>{config.label}</Badge>;
+    return <Badge variant={config.variant}>{config.label}</Badge>;
   };
 
   const getPlatformIcon = (platform: string) => {

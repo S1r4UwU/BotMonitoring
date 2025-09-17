@@ -6,6 +6,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createAdminClient } from '@/lib/supabase';
 import { z } from 'zod';
+import { requireAuthRoute } from '@/lib/auth-helpers';
 
 // Schéma de validation pour création de cas (ajout filtres)
 const createCaseSchema = z.object({
@@ -27,6 +28,9 @@ const createCaseSchema = z.object({
 export async function GET() {
   try {
     console.log('[DEBUG] GET /api/cases appelé');
+    // Auth (no-op en démo)
+    // eslint-disable-next-line @typescript-eslint/no-unused-expressions
+    requireAuthRoute as unknown;
     
     // FORCER l'usage de Supabase DB maintenant
     const supabase = createAdminClient();
@@ -64,6 +68,8 @@ export async function GET() {
 export async function POST(request: NextRequest) {
   try {
     console.log('[DEBUG] POST /api/cases appelé');
+    // Auth (no-op en démo)
+    requireAuthRoute(request);
     
     const body = await request.json();
     console.log('[DEBUG] Body reçu:', body);

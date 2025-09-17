@@ -31,6 +31,26 @@ interface RedditSearchResponse {
 }
 
 class RedditAPIService {
+  private async callWithRetry<T>(operation: () => Promise<T>, maxRetries = 3, timeoutMs = 15000): Promise<T> {
+    for (let attempt = 1; attempt <= maxRetries; attempt++) {
+      try {
+        return await Promise.race([
+          operation(),
+          new Promise<never>((_, reject) => setTimeout(() => reject(new Error(`Timeout ${timeoutMs}ms`)), timeoutMs))
+        ]);
+      } catch (error) {
+        const isLast = attempt === maxRetries;
+        if (isLast) {
+          console.error(`[ERROR] RedditAPIService failed after ${maxRetries} attempts:`, error);
+          throw error;
+        }
+        const delayMs = Math.min(1000 * Math.pow(2, attempt), 10000);
+        console.warn(`[RETRY] Reddit attempt ${attempt}/${maxRetries} failed, retrying in ${delayMs}ms...`);
+        await new Promise(resolve => setTimeout(resolve, delayMs));
+      }
+    }
+    throw new Error('Impossible de joindre Reddit API');
+  }
   private clientId: string;
   private clientSecret: string;
   private userAgent: string;
@@ -164,14 +184,14 @@ class RedditAPIService {
         type: 'link,self' // posts et self-posts
       };
 
-      const { data } = await axios.get<RedditSearchResponse>(`${this.oauthURL}/r/${subredditParam}${searchURL}`, {
+      const { data } = await this.callWithRetry(() => axios.get<RedditSearchResponse>(`${this.oauthURL}/r/${subredditParam}${searchURL}`, {
         headers: {
           'Authorization': `Bearer ${this.accessToken}`,
           'User-Agent': this.userAgent
         },
         params,
         timeout: 10000
-      });
+      }));
 
       this.decrementRateLimit();
 
