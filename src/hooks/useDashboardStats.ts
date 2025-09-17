@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { createClientComponentClient } from '@/lib/supabase-client';
+import { cacheService } from '@/lib/cache';
 import { DashboardMetrics } from '@/models/types';
 
 interface UseDashboardStatsOptions {
@@ -32,7 +33,19 @@ export function useDashboardStats({
 
       console.log('[DEBUG] useDashboardStats fetchStats appelé');
 
-      // Récupérer stats depuis l'API
+      // 1) Tenter le cache d'abord
+      try {
+        const cached = await cacheService.getCachedStats();
+        if (cached) {
+          console.log('[INFO] Dashboard stats servies depuis cache Redis');
+          setStats(cached);
+          return;
+        }
+      } catch {
+        console.warn('[WARN] Cache Redis indisponible, fallback vers API');
+      }
+
+      // 2) Récupérer stats depuis l'API
       const response = await fetch('/api/dashboard/stats');
       if (response.ok) {
         const result = await response.json();
@@ -40,6 +53,12 @@ export function useDashboardStats({
         if (result.success) {
           console.log('[INFO] Dashboard stats récupérées depuis API:', result.data);
           setStats(result.data);
+          // 3) Mise en cache pour prochaine fois
+          try {
+            await cacheService.cacheStats(result.data);
+          } catch {
+            console.warn('[WARN] Échec mise en cache des stats');
+          }
           return;
         }
       }

@@ -682,6 +682,17 @@ class MonitoringEngine {
   }
 
   /**
+   * État courant des circuit breakers
+   */
+  getCircuitBreakerStatus(): Record<string, import('@/lib/circuit-breaker').CircuitState> {
+    const status: Record<string, import('@/lib/circuit-breaker').CircuitState> = {};
+    for (const [platform, breaker] of this.circuitBreakers.entries()) {
+      status[platform] = breaker.getState();
+    }
+    return status;
+  }
+
+  /**
    * Test des connexions aux APIs externes
    */
   async testConnections() {

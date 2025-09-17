@@ -4,6 +4,7 @@
  */
 
 import axios from 'axios';
+import { cacheService } from '@/lib/cache';
 import { Mention } from '@/models/types';
 
 interface FacebookMention {
@@ -94,6 +95,12 @@ class FacebookAPIService {
       return [];
     }
 
+    const cacheKey = `fb:search:${keywords.join('+')}`;
+    try {
+      const cached = await cacheService.getAPIResponse<Mention[]>(cacheKey);
+      if (cached) return cached;
+    } catch {}
+
     if (!this.checkRateLimit()) {
       console.warn('Rate limit Facebook atteint, attente de reset');
       throw new Error('Rate limit Facebook dépassé. Réessayez dans une heure.');
@@ -118,6 +125,7 @@ class FacebookAPIService {
       this.decrementRateLimit();
 
       const mentions = response.data.data.map(post => this.formatFacebookMention(post, keywords));
+      try { await cacheService.cacheAPIResponse(cacheKey, mentions, 600); } catch {}
       
       console.log(`Facebook API: ${mentions.length} mentions trouvées pour [${keywords.join(', ')}]`);
       return mentions;

@@ -4,6 +4,7 @@
  */
 
 import axios from 'axios';
+import { cacheService } from '@/lib/cache';
 import { Mention } from '@/models/types';
 
 interface RedditPost {
@@ -128,6 +129,18 @@ class RedditAPIService {
       return [];
     }
 
+    const cacheKey = `reddit:search:${keywords.join('+')}_${subreddits.join('+')}_${limit}`;
+    // 1) Essayer le cache (10 min)
+    try {
+      const cached = await cacheService.getAPIResponse<Mention[]>(cacheKey);
+      if (cached) {
+        console.log('[INFO] Reddit data servie depuis cache');
+        return cached;
+      }
+    } catch {
+      // Cache indisponible
+    }
+
     if (!this.checkRateLimit()) {
       console.warn('Rate limit Reddit atteint, attente de reset');
       throw new Error('Rate limit Reddit dépassé. Réessayez dans une minute.');
@@ -163,6 +176,12 @@ class RedditAPIService {
       this.decrementRateLimit();
 
       const mentions = data.data.children.map(post => this.formatRedditMention(post, keywords));
+      // 2) Mise en cache résultat
+      try {
+        await cacheService.cacheAPIResponse(cacheKey, mentions, 600);
+      } catch {
+        console.warn('[WARN] Échec cache Reddit API');
+      }
       
       console.log(`Reddit API: ${mentions.length} mentions trouvées pour [${keywords.join(', ')}]`);
       return mentions;

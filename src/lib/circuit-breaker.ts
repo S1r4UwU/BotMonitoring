@@ -56,6 +56,20 @@ export class CircuitBreaker {
       throw error;
     }
   }
+
+  // Getters d'observabilité
+  getState(): CircuitState {
+    return this.state;
+  }
+
+  getMetrics() {
+    return {
+      state: this.state,
+      failures: this.failures,
+      lastFailureTime: this.lastFailureTime,
+      config: this.config,
+    } as const;
+  }
 }
 
 export const defaultCircuitConfig: CircuitBreakerConfig = {

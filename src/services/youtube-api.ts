@@ -1,4 +1,5 @@
 import { Mention } from '@/models/types';
+import { cacheService } from '@/lib/cache';
 
 interface YouTubeSearchItem {
   id: { videoId: string };
@@ -80,6 +81,13 @@ class YouTubeAPIService {
   }
 
   private async searchVideos(keyword: string, maxResults: number): Promise<Mention[]> {
+    // Cache (5 min) clé par keyword
+    const cacheKey = `yt:search:${keyword}:${maxResults}`;
+    try {
+      const cached = await cacheService.getAPIResponse<Mention[]>(cacheKey);
+      if (cached) return cached;
+    } catch {}
+
     // Coût typique: search.list ~ 100 unités
     const url = `${this.baseURL}/search?part=snippet&q=${encodeURIComponent(keyword)}&type=video&order=relevance&maxResults=${maxResults}&key=${this.apiKey}`;
     const res = await fetch(url);
@@ -88,7 +96,7 @@ class YouTubeAPIService {
     const items: YouTubeSearchItem[] = data.items || [];
     this.trackQuotaUsage(100);
     const nowIso = new Date().toISOString();
-    return items.map(item => ({
+    const out = items.map(item => ({
       id: `youtube_video_${item.id.videoId}`,
       case_id: '',
       platform: 'youtube',
@@ -106,9 +114,18 @@ class YouTubeAPIService {
       },
       created_at: nowIso
     }));
+    try { await cacheService.cacheAPIResponse(cacheKey, out, 300); } catch {}
+    return out;
   }
 
   private async searchComments(videoId: string, keyword: string): Promise<Mention[]> {
+    // Cache (5 min) par vidéo+keyword
+    const cacheKey = `yt:comments:${videoId}:${keyword}`;
+    try {
+      const cached = await cacheService.getAPIResponse<Mention[]>(cacheKey);
+      if (cached) return cached;
+    } catch {}
+
     // Coût typique: commentThreads.list ~ 1 unité
     const url = `${this.baseURL}/commentThreads?part=snippet&videoId=${videoId}&maxResults=20&order=relevance&key=${this.apiKey}`;
     const res = await fetch(url);
@@ -117,7 +134,7 @@ class YouTubeAPIService {
     const items: YouTubeCommentThreadItem[] = data.items || [];
     this.trackQuotaUsage(1);
     const nowIso = new Date().toISOString();
-    return items
+    const out = items
       .filter(i => (i.snippet.topLevelComment.snippet.textDisplay || '').toLowerCase().includes(keyword.toLowerCase()))
       .map(i => {
         const c = i.snippet.topLevelComment.snippet;
@@ -142,6 +159,8 @@ class YouTubeAPIService {
           created_at: nowIso
         } as Mention;
       });
+    try { await cacheService.cacheAPIResponse(cacheKey, out, 300); } catch {}
+    return out;
   }
 
   getRateLimitInfo() {
