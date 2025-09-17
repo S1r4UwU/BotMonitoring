@@ -5,11 +5,6 @@ import { extractBearerToken, verifyBearerJwt, isDemoMode } from '@/lib/auth-help
 export async function middleware(request: NextRequest) {
   const path = request.nextUrl.pathname;
 
-  // Redirection automatique de la page d'accueil vers le dashboard
-  if (path === '/') {
-    return NextResponse.redirect(new URL('/dashboard', request.url));
-  }
-
   // Protection basique des routes API
   if (path.startsWith('/api/')) {
     if (!isDemoMode()) {

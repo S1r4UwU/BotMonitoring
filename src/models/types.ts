@@ -128,7 +128,7 @@ export type Platform =
   | 'reddit'
   | 'youtube'
   | 'hackernews'
-  | 'news'
+  | 'newsapi'
   | 'mastodon'
   | 'telegram'
   | 'discord';

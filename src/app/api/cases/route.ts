@@ -12,7 +12,9 @@ const createCaseSchema = z.object({
   name: z.string().min(1, 'Le nom est requis'),
   description: z.string().optional(),
   keywords: z.array(z.string()).min(1, 'Au moins un mot-clé requis'),
-  platforms: z.array(z.enum(['facebook', 'instagram', 'reddit'])).min(1, 'Au moins une plateforme requise'),
+  platforms: z.array(z.enum([
+    'facebook', 'instagram', 'reddit', 'youtube', 'hackernews', 'newsapi', 'mastodon', 'telegram', 'discord'
+  ])).min(1, 'Au moins une plateforme requise'),
   filters: z.object({
     languages: z.array(z.string()).default([]),
     countries: z.array(z.string()).default([]),
@@ -87,8 +89,8 @@ export async function POST(request: NextRequest) {
       .insert({
         name,
         description,
-        keywords: JSON.stringify(keywords),
-        platforms: JSON.stringify(platforms),
+        keywords: keywords,
+        platforms: platforms,
         status: 'active'
       })
       .select()

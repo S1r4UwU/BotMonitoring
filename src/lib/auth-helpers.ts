@@ -25,11 +25,14 @@ export function extractBearerToken(request: NextRequest): string | null {
 export function verifyBearerJwt(token: string): AuthContext | null {
   const secret = process.env.JWT_SECRET || process.env.NEXTAUTH_SECRET || '';
   if (!secret) {
-    // Sans secret, on ne peut pas vérifier sérieusement le JWT
+    console.warn('JWT_SECRET manquant - sécurité compromise');
     return null;
   }
   try {
-    const decoded = jwt.verify(token, secret);
+    const decoded = jwt.verify(token, secret, {
+      algorithms: ['HS256'],
+      maxAge: '24h'
+    } as any);
     const payload = typeof decoded === 'string' ? { sub: decoded } : decoded;
     return {
       userId: (payload as any).sub || (payload as any).userId,
@@ -37,7 +40,8 @@ export function verifyBearerJwt(token: string): AuthContext | null {
       roles: (payload as any).roles || [],
       raw: payload,
     };
-  } catch {
+  } catch (error) {
+    console.error('JWT verification failed:', error);
     return null;
   }
 }
