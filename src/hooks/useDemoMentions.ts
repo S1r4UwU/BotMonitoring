@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { DemoDataService } from '@/services/demo-data';
 import { Mention, MentionFilters } from '@/models/types';
 
@@ -36,6 +36,7 @@ export function useDemoMentions({
   const [error, setError] = useState<string | null>(null);
   const [totalCount, setTotalCount] = useState(0);
   const [currentPage, setCurrentPage] = useState(1);
+  const fetchMentionsRef = useRef<(page?: number) => Promise<void>>();
   
   // Calculer les pages
   const totalPages = Math.ceil(totalCount / pageSize);
@@ -63,6 +64,11 @@ export function useDemoMentions({
       setLoading(false);
     }
   }, [filters, pageSize]);
+
+  // Garder une ref stable vers la fonction pour l'intervalle
+  useEffect(() => {
+    fetchMentionsRef.current = fetchMentions;
+  }, [fetchMentions]);
 
   const refreshMentions = useCallback(async () => {
     await fetchMentions(currentPage);
@@ -95,9 +101,11 @@ export function useDemoMentions({
   useEffect(() => {
     if (!autoRefresh || refreshInterval <= 0) return;
 
-    const interval = setInterval(refreshMentions, refreshInterval);
+    const interval = setInterval(() => {
+      fetchMentionsRef.current?.(currentPage);
+    }, refreshInterval);
     return () => clearInterval(interval);
-  }, [autoRefresh, refreshInterval, currentPage, filters, refreshMentions]);
+  }, [autoRefresh, refreshInterval, currentPage]);
 
   return {
     mentions,

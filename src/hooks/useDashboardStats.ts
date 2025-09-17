@@ -23,9 +23,7 @@ export function useDashboardStats({
   const [stats, setStats] = useState<DashboardMetrics | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  
-  const supabase = createClientComponentClient();
-  const fetchStatsRef = useRef<typeof fetchStats>();
+  const fetchStatsRef = useRef<() => Promise<void>>();
 
   const fetchStats = useCallback(async () => {
     try {
@@ -47,6 +45,8 @@ export function useDashboardStats({
       }
 
       // Fallback vers Supabase si localStorage échoue
+      const supabase = createClientComponentClient();
+
       const [
         mentionsResult,
         newMentionsResult,
@@ -153,10 +153,12 @@ export function useDashboardStats({
     } finally {
       setLoading(false);
     }
-  }, [supabase]);
+  }, []);
 
-  // Mettre à jour la ref
-  fetchStatsRef.current = fetchStats;
+  // Mettre à jour la ref une fois que la fonction est (re)créée
+  useEffect(() => {
+    fetchStatsRef.current = fetchStats;
+  }, [fetchStats]);
 
   const refreshStats = useCallback(async () => {
     await fetchStats();
@@ -165,7 +167,7 @@ export function useDashboardStats({
   // Effect pour charger les stats initiales
   useEffect(() => {
     fetchStats();
-  }, [fetchStats]); // Inclure fetchStats dans les dépendances
+  }, [fetchStats]);
 
   // Effect pour l'auto-refresh
   useEffect(() => {

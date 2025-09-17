@@ -5,10 +5,14 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { createAdminClient } from '@/lib/supabase';
+import { requireAuthRoute } from '@/lib/auth-helpers';
+import { z } from 'zod';
 
 export async function GET(request: NextRequest) {
   try {
     console.log('[DEBUG] GET /api/mentions appelé');
+    // Auth (no-op en démo)
+    requireAuthRoute(request);
     
     const { searchParams } = new URL(request.url);
     const page = parseInt(searchParams.get('page') || '1');
@@ -67,16 +71,15 @@ export async function GET(request: NextRequest) {
 export async function PUT(request: NextRequest) {
   try {
     console.log('[DEBUG] PUT /api/mentions appelé');
+    // Auth (no-op en démo)
+    requireAuthRoute(request);
     
     const body = await request.json();
-    const { id, status } = body;
-
-    if (!id || !status) {
-      return NextResponse.json({
-        success: false,
-        error: 'ID et status requis'
-      }, { status: 400 });
-    }
+    const schema = z.object({
+      id: z.string().uuid(),
+      status: z.enum(['new', 'processed', 'responded', 'ignored'])
+    });
+    const { id, status } = schema.parse(body);
 
     // FORCER mise à jour en Supabase DB
     const supabase = createAdminClient();

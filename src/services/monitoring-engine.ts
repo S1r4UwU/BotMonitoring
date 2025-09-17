@@ -13,6 +13,7 @@ import { mastodonAPI } from './mastodon-api';
 import { telegramAPI } from './telegram-api';
 import { discordAPI } from './discord-api';
 import { Mention } from '@/models/types';
+import { CircuitBreaker, defaultCircuitConfig } from '@/lib/circuit-breaker';
 import { isDemoMode } from './demo-data';
 
 // Métriques détaillées par plateforme (déclarée au niveau module)
@@ -71,6 +72,16 @@ class MonitoringEngine {
   };
 
   private platformMetrics: Map<string, PlatformMetrics> = new Map();
+  private circuitBreakers: Map<string, CircuitBreaker> = new Map([
+    ['facebook', new CircuitBreaker(defaultCircuitConfig)],
+    ['reddit', new CircuitBreaker(defaultCircuitConfig)],
+    ['youtube', new CircuitBreaker(defaultCircuitConfig)],
+    ['hackernews', new CircuitBreaker(defaultCircuitConfig)],
+    ['newsapi', new CircuitBreaker(defaultCircuitConfig)],
+    ['mastodon', new CircuitBreaker(defaultCircuitConfig)],
+    ['telegram', new CircuitBreaker(defaultCircuitConfig)],
+    ['discord', new CircuitBreaker(defaultCircuitConfig)],
+  ]);
 
   constructor() {
     this.initializeEngine();
@@ -342,7 +353,8 @@ class MonitoringEngine {
   private async scanFacebook(keywords: string[], caseId: string): Promise<Mention[]> {
     try {
       const start = Date.now();
-      const mentions = await this.callAPIWithRetry(() => facebookAPI.searchFacebookPosts(keywords, 25), 'facebook');
+      const breaker = this.circuitBreakers.get('facebook')!;
+      const mentions = await this.callAPIWithRetry(() => breaker.execute(() => facebookAPI.searchFacebookPosts(keywords, 25)), 'facebook');
       await this.updateMetrics('facebook', true, Date.now() - start);
       return mentions.map(mention => ({
         ...mention,
@@ -366,7 +378,8 @@ class MonitoringEngine {
     try {
       const subreddits = filters?.subreddits || [];
       const start = Date.now();
-      const mentions = await this.callAPIWithRetry(() => redditAPI.searchPosts(keywords, subreddits, 25), 'reddit');
+      const breaker = this.circuitBreakers.get('reddit')!;
+      const mentions = await this.callAPIWithRetry(() => breaker.execute(() => redditAPI.searchPosts(keywords, subreddits, 25)), 'reddit');
       await this.updateMetrics('reddit', true, Date.now() - start);
       return mentions.map(mention => ({
         ...mention,
@@ -385,7 +398,8 @@ class MonitoringEngine {
   private async scanYouTube(keywords: string[], caseId: string): Promise<Mention[]> {
     try {
       const start = Date.now();
-      const mentions = await this.callAPIWithRetry(() => youtubeAPI.search(keywords, 25), 'youtube');
+      const breaker = this.circuitBreakers.get('youtube')!;
+      const mentions = await this.callAPIWithRetry(() => breaker.execute(() => youtubeAPI.search(keywords, 25)), 'youtube');
       await this.updateMetrics('youtube', true, Date.now() - start);
       return mentions.map(m => ({ ...m, case_id: caseId }));
     } catch (e) {

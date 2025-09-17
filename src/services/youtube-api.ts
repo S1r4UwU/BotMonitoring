@@ -28,6 +28,9 @@ interface YouTubeCommentThreadItem {
 class YouTubeAPIService {
   private apiKey: string;
   private baseURL = 'https://www.googleapis.com/youtube/v3';
+  private quotaUsed = 0;
+  private quotaLimit = 10000;
+  private quotaResetTime = new Date(new Date().setHours(24,0,0,0)).toISOString();
 
   constructor() {
     this.apiKey = process.env.YOUTUBE_API_KEY || '';
@@ -38,6 +41,24 @@ class YouTubeAPIService {
 
   isConfigured(): boolean {
     return !!this.apiKey;
+  }
+
+  private getNextDayStart(): string {
+    const now = new Date();
+    const next = new Date(now);
+    next.setHours(24, 0, 0, 0);
+    return next.toISOString();
+  }
+
+  private trackQuotaUsage(cost: number) {
+    this.quotaUsed += cost;
+    if (new Date().toISOString() > this.quotaResetTime) {
+      this.quotaUsed = 0;
+      this.quotaResetTime = this.getNextDayStart();
+    }
+    if (this.quotaUsed >= this.quotaLimit * 0.8) {
+      console.warn('YouTube quota at 80%');
+    }
   }
 
   async search(keywords: string[], maxPerKeyword = 25): Promise<Mention[]> {
@@ -59,11 +80,13 @@ class YouTubeAPIService {
   }
 
   private async searchVideos(keyword: string, maxResults: number): Promise<Mention[]> {
+    // Coût typique: search.list ~ 100 unités
     const url = `${this.baseURL}/search?part=snippet&q=${encodeURIComponent(keyword)}&type=video&order=relevance&maxResults=${maxResults}&key=${this.apiKey}`;
     const res = await fetch(url);
     if (!res.ok) return [];
     const data = await res.json();
     const items: YouTubeSearchItem[] = data.items || [];
+    this.trackQuotaUsage(100);
     const nowIso = new Date().toISOString();
     return items.map(item => ({
       id: `youtube_video_${item.id.videoId}`,
@@ -86,11 +109,13 @@ class YouTubeAPIService {
   }
 
   private async searchComments(videoId: string, keyword: string): Promise<Mention[]> {
+    // Coût typique: commentThreads.list ~ 1 unité
     const url = `${this.baseURL}/commentThreads?part=snippet&videoId=${videoId}&maxResults=20&order=relevance&key=${this.apiKey}`;
     const res = await fetch(url);
     if (!res.ok) return [];
     const data = await res.json();
     const items: YouTubeCommentThreadItem[] = data.items || [];
+    this.trackQuotaUsage(1);
     const nowIso = new Date().toISOString();
     return items
       .filter(i => (i.snippet.topLevelComment.snippet.textDisplay || '').toLowerCase().includes(keyword.toLowerCase()))
@@ -120,7 +145,7 @@ class YouTubeAPIService {
   }
 
   getRateLimitInfo() {
-    return null;
+    return { quotaUsed: this.quotaUsed, quotaLimit: this.quotaLimit, resetAt: this.quotaResetTime };
   }
 
   async testConnection(): Promise<{ success: boolean; message: string }> {

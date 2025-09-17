@@ -35,9 +35,7 @@ export function useMentions({
   const [error, setError] = useState<string | null>(null);
   const [totalCount, setTotalCount] = useState(0);
   const [currentPage, setCurrentPage] = useState(1);
-  
-  const supabase = createClientComponentClient();
-  const fetchMentionsRef = useRef<typeof fetchMentions>();
+  const fetchMentionsRef = useRef<(page?: number) => Promise<void>>();
 
   // Calculer les pages
   const totalPages = Math.ceil(totalCount / pageSize);
@@ -76,8 +74,10 @@ export function useMentions({
     }
   }, [pageSize]);
 
-  // Mettre à jour la ref
-  fetchMentionsRef.current = fetchMentions;
+  // Mettre à jour la ref quand la fonction change
+  useEffect(() => {
+    fetchMentionsRef.current = fetchMentions;
+  }, [fetchMentions]);
 
   const refreshMentions = useCallback(async () => {
     await fetchMentions(currentPage);
@@ -108,22 +108,26 @@ export function useMentions({
         throw new Error('Erreur API update mention');
       }
 
-      // Fallback vers Supabase
-      const { error: updateError } = await supabase
-        .from('mentions')
-        .update({ status })
-        .eq('id', id);
+      // Si l'API échoue, fallback vers Supabase (client créé localement)
+      try {
+        const supabase = createClientComponentClient();
+        const { error: updateError } = await supabase
+          .from('mentions')
+          .update({ status })
+          .eq('id', id);
 
-      if (updateError) {
-        throw new Error(updateError.message);
+        if (updateError) {
+          throw new Error(updateError.message);
+        }
+
+        setMentions(prev => 
+          prev.map(mention => 
+            mention.id === id ? { ...mention, status } : mention
+          )
+        );
+      } catch (fallbackErr) {
+        console.error('[ERROR] Fallback Supabase update failed:', fallbackErr);
       }
-
-      // Mettre à jour l'état local
-      setMentions(prev => 
-        prev.map(mention => 
-          mention.id === id ? { ...mention, status } : mention
-        )
-      );
 
     } catch (err) {
       console.error('[ERROR] Erreur lors de la mise à jour du statut:', err);
